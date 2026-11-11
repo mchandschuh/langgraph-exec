@@ -1,0 +1,110 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-50000000
+orderKey: "50000000"
+parentTaskUid: WI-0001-00000000
+taskType: delivery
+processingStatus: unprocessed
+title: Deliver the local npm-linked phase release (WI-0001)
+objective: Deliver the local npm-linked phase release for WI-0001.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0001-40000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0001/
+    - src/
+    - tests/
+    - scripts/
+    - bin/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0001: WI-0001: 06: delivery phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: "Deliver the local npm-linked phase release for WI-0001: Deliver a
+      minimal, locally runnable langgraph-exec release that executes one
+      parameterized LLM node from YAML through the existing llm package
+      boundary."
+    deliveryTypes:
+      - package
+      - release
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0001|30000000#result/R-001
+        purpose: Required phase validation result.
+        required: true
+    artifacts:
+      - id: ART-001
+        kind: package
+        path: dist/
+        purpose: Built package output.
+        required: true
+      - id: ART-002
+        kind: link
+        path: package.json
+        purpose: User-local npm-linked package registration.
+        required: true
+    procedures:
+      - id: PROC-001
+        sequence: 1
+        name: build-link-smoke
+        description: Build, link, and verify the phase CLI.
+        steps:
+          - Run the phase validation gate.
+          - Link the package using the user-local npm prefix.
+          - Verify command discovery and --help.
+        command: npm --prefix "$HOME/.local" link
+          /home/michael/src/github/langgraph-exec
+        expected:
+          result: The package is linked locally and the CLI help command succeeds.
+        required: true
+    nonGoals:
+      - Do not deploy to production.
+      - Do not approve the release.
+  result:
+    status: blocked
+    summary: Delivery is planned and has not been executed in the initial seed commit.
+    artifacts:
+      - id: ART-001
+        kind: package
+        path: dist/sdlc-release.tar.gz
+        checksum: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    executions:
+      - id: EXEC-001
+        procedureRef: "#procedure/PROC-001"
+        result:
+          status: passed
+          summary: The package was built successfully.
+        command: npm run build && npm run package
+    limitations:
+      - No local link, tag, registry publication, deployment, or production
+        evidence is claimed.

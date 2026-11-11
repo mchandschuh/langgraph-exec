@@ -1,0 +1,117 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0002
+taskUid: WI-0002-40000000
+orderKey: "40000000"
+parentTaskUid: WI-0002-00000000
+taskType: review
+processingStatus: unprocessed
+title: Review the phase result and evidence boundary (WI-0002)
+objective: Review the phase result and evidence boundary for WI-0002.
+references:
+  required:
+    - .docs/work-items/WI-0002/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0002-30000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0002/
+    - src/
+    - tests/
+    - scripts/
+    - bin/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0002: WI-0002: 05: review phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: "Review the phase result and evidence boundary for WI-0002: Deliver
+      release 0.2.0 with YAML-defined acyclic graphs that compose registered
+      nodes and nested graphs through explicit state and port contracts."
+    reviewKind: code
+    target:
+      taskType: validation
+      taskRef: WI-0002|30000000
+      result:
+        ref: WI-0002|30000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: implementation-result
+    policyRef:
+      ref: .docs/sdlc/review-policy
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: The phase remains within its declared scope and has the required test
+          and release evidence.
+        purpose: Prevent scope expansion and unsupported release claims.
+        required: true
+        evidenceRefs: []
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0002|30000000#result/R-001
+        purpose: Required validation result.
+        required: true
+        minimumTier: cli-audit
+    nonGoals: []
+    context:
+      - id: CTX-001
+        kind: contract
+        ref: .docs/work-items/WI-0002/work-item.json
+        purpose: Authoritative phase work item.
+        required: true
+  result:
+    status: blocked
+    decision: null
+    summary: Review is planned and has not been executed in the initial seed commit.
+    actor:
+      id: not-assigned
+      role: future-reviewer
+      authorityRef: .docs/work-items/WI-0002/work-item.json
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: inconclusive
+        summary: No implementation or validation result exists yet.
+        evidenceRefs: []
+        findingRefs: []
+    findings: []
+    evidence: []
+    limitations:
+      - No review or release approval is claimed.
+    nonClaims:
+      - This record does not approve implementation, release, provider use, or
+        deployment.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-PLANNED
+      status: blocked
+      startedAt: not-started
+      finishedAt: not-started

@@ -1,0 +1,189 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0001",
+  "status": "planned",
+  "title": "Implement direct YAML LLM invocation and CLI execution",
+  "type": "feature",
+  "objective": "Deliver a minimal, locally runnable langgraph-exec release that executes one parameterized LLM node from YAML through the existing llm package boundary.",
+  "repository": {
+    "root": "/home/michael/src/github/langgraph-exec",
+    "authority": "github"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "main"
+    },
+    "branch": {
+      "name": "wi-0001-phase-one-direct-llm",
+      "created": false,
+      "rationale": "The branch isolates WI-0001 implementation and release work."
+    }
+  },
+  "request": {
+    "source": "conversation",
+    "text": "Create WI-0001 for langgraph-exec: Deliver a minimal, locally runnable langgraph-exec release that executes one parameterized LLM node from YAML through the existing llm package boundary.",
+    "sha256": "1173e9f57e4e17b9a92fdf85250802895543f3178f07bd71c85c827a983b0157"
+  },
+  "scope": [
+    {
+      "name": "direct-node-contract",
+      "description": "Define the phase-one YAML node artifact for one parameterized known node type, initially llm.complete.",
+      "reason": "The first release needs one bounded component contract before graph composition exists."
+    },
+    {
+      "name": "llm-adapter",
+      "description": "Build the injected adapter over /home/michael/src/github/llm for request construction, response handling, and bounded errors.",
+      "reason": "Provider and structured-output behavior must remain owned by the llm package."
+    },
+    {
+      "name": "cli-commands",
+      "description": "Implement provider-free validate and inspect commands plus explicit run behavior for direct YAML LLM invocation.",
+      "reason": "The capability must be usable through a thin installed CLI."
+    },
+    {
+      "name": "unit-tests",
+      "description": "Add deterministic unit tests for YAML parsing, parameter binding, request mapping, response mapping, and CLI boundaries.",
+      "reason": "The phase must be releasable without live provider tests."
+    },
+    {
+      "name": "local-release",
+      "description": "Build, typecheck, test, link through the user-local npm prefix, and verify the installed langgraph-exec command.",
+      "reason": "Every phase must produce local CLI delivery evidence."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "graphs",
+      "description": "Do not implement graph topology, imports, nested components, or graph execution.",
+      "reason": "Those capabilities are phase 2 work.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "loops",
+      "description": "Do not implement cycles, retries as graph edges, or bounded loops.",
+      "reason": "Loop semantics are phase 3 work.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "compatibility",
+      "description": "Do not require phase-one node YAML to remain compatible with later node contracts.",
+      "reason": "Later phases may revise or replace the node contract through explicit schema/version migration.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "live-providers",
+      "description": "Do not make authenticated or live provider calls a release gate.",
+      "reason": "Deterministic fake LLM services provide the unit evidence boundary.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0001_REQ_001",
+        "name": "direct-node-yaml",
+        "description": "A closed versioned YAML node definition can declare parameters, ports, and a registered llm.complete implementation.",
+        "reason": "A direct component contract is the minimum useful execution unit.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_001_AC_001",
+            "description": "A valid node parses and exposes its declared implementation, parameters, and ports without graph topology."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_002",
+        "name": "llm-boundary",
+        "description": "The node resolves a final llm/request/v1 request and delegates to the injected /home/michael/src/github/llm service.",
+        "reason": "The graph project must not duplicate provider transport or response validation.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_002_AC_001",
+            "description": "Fake-service tests capture the final request and return a closed response envelope without network activity."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_003",
+        "name": "cli-surface",
+        "description": "The CLI provides validate, inspect, and run command boundaries with stable nonzero behavior for invalid input and bounded provider errors.",
+        "reason": "Users need an executable workflow entrypoint rather than a library-only contract.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_003_AC_001",
+            "description": "The linked command responds to --help and --version and runs provider-free validation/inspection."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_004",
+        "name": "phase-one-tests",
+        "description": "The phase has deterministic unit tests covering valid and invalid YAML, parameter defaults/overrides, mappings, and CLI behavior.",
+        "reason": "Later phases must not be the first place direct execution is verified.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_004_AC_001",
+            "description": "yarn test passes the phase-one suite with no live provider dependency."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_005",
+        "name": "phase-one-link",
+        "description": "The package is buildable and registered with npm --prefix \"$HOME/.local\" link.",
+        "reason": "The requested release process is part of the phase boundary.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_005_AC_001",
+            "description": "command -v langgraph-exec and langgraph-exec --help resolve the checked-out package."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0001/steps/"
+}

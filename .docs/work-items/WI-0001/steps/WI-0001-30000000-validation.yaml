@@ -1,0 +1,123 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-30000000
+orderKey: "30000000"
+parentTaskUid: WI-0001-00000000
+taskType: validation
+processingStatus: unprocessed
+title: Validate the phase release gates (WI-0001)
+objective: Validate the phase release gates for WI-0001.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0001-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0001/
+    - src/
+    - tests/
+    - scripts/
+    - bin/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0001: WI-0001: 04: validation phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: "Validate the phase release gates for WI-0001: Deliver a minimal,
+      locally runnable langgraph-exec release that executes one parameterized
+      LLM node from YAML through the existing llm package boundary."
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0001|20000000#result/R-001
+        purpose: The implementation result to validate after execution.
+        required: true
+    targets:
+      - id: TARGET-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: The repository revision, build, tests, and linked CLI.
+        required: true
+    objectiveRefs:
+      - "#objective/OBJ-001"
+    testCaseRefs:
+      - "#test-case/TC-001"
+    procedures:
+      - id: VAL-001
+        sequence: 1
+        name: phase-release-gate
+        description: Run the phase typecheck, unit tests, build, user-local npm link,
+          and CLI smoke checks.
+        reason: The phase is independently releasable only after its local CLI gate
+          passes.
+        targetRefs:
+          - "#target/TARGET-REPOSITORY"
+        objectiveRefs: []
+        testCaseRefs:
+          - "#test-case/TC-001"
+        method:
+          executionMode: executable
+          target: Repository release gate
+          steps:
+            - Run yarn typecheck.
+            - Run yarn test.
+            - Run yarn build.
+            - Run npm --prefix "$HOME/.local" link
+              /home/michael/src/github/langgraph-exec.
+            - Run command -v langgraph-exec and langgraph-exec --help.
+          command: yarn typecheck && yarn test && yarn build
+        expected:
+          outcome: passed
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not claim that the design has been implemented.
+      - Do not claim provider or production behavior.
+  result:
+    status: blocked
+    summary: Validation is planned and has not been executed in the initial seed commit.
+    executions:
+      - id: EXEC-001
+        procedureRef: "#procedure/VAL-001"
+        status: blocked
+        observed:
+          outcome: not-run
+          summary: No validation execution has occurred.
+        evidenceTier: static
+        evidence:
+          - kind: command
+            source: planned release gate
+            claim: The procedure is declared for a future phase release gate.
+    findings: []
+    evidenceTier: static
+    limitations:
+      - No command, test, build, link, or provider evidence is claimed.
+    nonClaims:
+      - This result does not claim that the design has been implemented.
+      - This result does not claim production readiness.

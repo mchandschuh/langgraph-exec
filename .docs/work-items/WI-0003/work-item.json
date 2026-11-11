@@ -1,0 +1,189 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0003",
+  "status": "planned",
+  "title": "Implement explicit bounded loops in YAML graphs",
+  "type": "feature",
+  "objective": "Deliver release 0.3.0 with explicit bounded loops, compiler-enforced termination budgets, deterministic loop execution, and loop inspection.",
+  "repository": {
+    "root": "/home/michael/src/github/langgraph-exec",
+    "authority": "github"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "main"
+    },
+    "branch": {
+      "name": "wi-0003-phase-three-loops",
+      "created": false,
+      "rationale": "The branch isolates WI-0003 implementation and release work."
+    }
+  },
+  "request": {
+    "source": "conversation",
+    "text": "Create WI-0003 for langgraph-exec: Deliver release 0.3.0 with explicit bounded loops, compiler-enforced termination budgets, deterministic loop execution, and loop inspection.",
+    "sha256": "fd7813854a93fb62a58d4af97500e884a6a25c203bcd142b1bb628e033a3518b"
+  },
+  "scope": [
+    {
+      "name": "loop-contract",
+      "description": "Define explicit loop declarations with entry, body, exit, condition, iteration state, and finite limits.",
+      "reason": "Loops need a safer contract than arbitrary graph back edges."
+    },
+    {
+      "name": "loop-validation",
+      "description": "Reject undeclared cycles, missing exits, absent finite bounds, and routes that bypass loop budgets.",
+      "reason": "Unbounded execution is not acceptable in declarative workflows."
+    },
+    {
+      "name": "loop-backend",
+      "description": "Lower validated loops into bounded LangGraph conditional transitions with graph-owned counters and step budgets.",
+      "reason": "The backend must enforce graph limits independently of backend defaults."
+    },
+    {
+      "name": "loop-tests",
+      "description": "Add deterministic tests for early exit, exhaustion, nested bounds, failures, and observability.",
+      "reason": "Loop semantics require a dedicated evidence matrix."
+    },
+    {
+      "name": "phase-three-release",
+      "description": "Repeat typecheck, tests, build, user-local link, and CLI loop inspection for v0.3.0.",
+      "reason": "Loops are a releasable capability, not an implicit graph change."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "arbitrary-cycles",
+      "description": "Do not permit cycles that are not declared as bounded loops.",
+      "reason": "Every cycle must have an explicit safety contract.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "durability",
+      "description": "Do not make checkpoint/resume, interrupts, or external side-effect recovery part of the loop release.",
+      "reason": "Those require a later persistence phase.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "compatibility",
+      "description": "Do not require phase-two graph/node definitions to remain unchanged if loop-capable graph schemas need an explicit version migration.",
+      "reason": "Compatibility is a deliberate migration decision, not an assumption.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "live-providers",
+      "description": "Do not require live LLM/provider calls for loop unit-test evidence.",
+      "reason": "Fake services and deterministic graph fixtures are sufficient for this phase gate.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0003_REQ_001",
+        "name": "loop-definition",
+        "description": "A graph can declare a finite loop with entry, body, exit, condition, counter, and maximum iterations.",
+        "reason": "Loop behavior must be explicit and inspectable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_001_AC_001",
+            "description": "Valid loop definitions expose effective bounds and invalid definitions fail before compilation."
+          }
+        ]
+      },
+      {
+        "id": "WI-0003_REQ_002",
+        "name": "loop-safety",
+        "description": "The compiler rejects undeclared cycles and any loop without a finite termination budget.",
+        "reason": "Declarative execution must fail closed against unbounded work.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_002_AC_001",
+            "description": "Cycle, missing-exit, missing-limit, and bypass-route tests pass."
+          }
+        ]
+      },
+      {
+        "id": "WI-0003_REQ_003",
+        "name": "loop-execution",
+        "description": "The LangGraph backend executes bounded iterations, exits early when conditions pass, and returns a structured limit failure on exhaustion.",
+        "reason": "The runtime must distinguish successful termination from budget exhaustion.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_003_AC_001",
+            "description": "Iteration counts and terminal status are deterministic under fake nodes."
+          }
+        ]
+      },
+      {
+        "id": "WI-0003_REQ_004",
+        "name": "loop-composition",
+        "description": "Phase-two nodes and nested graphs can be used inside a bounded loop subject to the loop contract.",
+        "reason": "Loops should extend composition rather than create a parallel model.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_004_AC_001",
+            "description": "Nested loop-body composition and failure routing are tested."
+          }
+        ]
+      },
+      {
+        "id": "WI-0003_REQ_005",
+        "name": "phase-three-tests-link",
+        "description": "The phase has its own loop unit tests and passes the full build/link/CLI release gate.",
+        "reason": "Each phase must be independently releasable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_005_AC_001",
+            "description": "All prior regression tests plus phase-three tests pass before v0.3.0 delivery."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0003/steps/"
+}

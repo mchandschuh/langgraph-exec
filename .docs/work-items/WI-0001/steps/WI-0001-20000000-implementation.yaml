@@ -1,0 +1,127 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-20000000
+orderKey: "20000000"
+parentTaskUid: WI-0001-00000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement the phase capability and tests (WI-0001)
+objective: Implement the phase capability and tests for WI-0001.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0001-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0001/
+    - src/
+    - tests/
+    - scripts/
+    - bin/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0001: WI-0001: 03: implementation phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: "Implement the phase capability and tests for WI-0001: Deliver a
+      minimal, locally runnable langgraph-exec release that executes one
+      parameterized LLM node from YAML through the existing llm package
+      boundary."
+    changeTypes:
+      - production-code
+      - test-code
+    changeIntent: bugfix
+    inputs:
+      - id: INPUT-PHASE
+        kind: constraint
+        ref: "#constraint/PHASE"
+        purpose: The phase scope and acceptance contract.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: "Implement the phase capability and tests for WI-0001: Deliver a
+          minimal, locally runnable langgraph-exec release that executes one
+          parameterized LLM node from YAML through the existing llm package
+          boundary."
+        inputRefs:
+          - INPUT-PHASE
+        testCaseRefs:
+          - "#test-case/TC-001"
+    ownedPaths:
+      - src/
+      - tests/
+      - package.json
+      - README.md
+      - SKILL.md
+      - scripts/
+      - bin/
+    nonGoals:
+      - Do not deploy to production.
+    steps:
+      - Implement validation handling.
+      - Run the required test command.
+  result:
+    status: blocked
+    implementation:
+      summary: Implementation is planned and has not been executed in the initial seed
+        commit.
+      changes:
+        - id: CHANGE-001
+          type: production-code
+          summary: Reject malformed events before persistence.
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - src/validation/service.ts
+        - id: CHANGE-002
+          type: test-code
+          summary: Add the invalid-event regression test.
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - test/validation/service.test.ts
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: test/validation/service.test.ts
+          selector: rejects invalid event before persistence
+    verification:
+      status: not-run
+      objectiveRefs:
+        - OBJ-001
+      tests:
+        - id: EXEC-001
+          type: unit
+          testCaseRefs:
+            - "#test-case/TC-001"
+          command: npm test -- --runInBand test/validation/service.test.ts
+          status: passed
+          result: The test process exited zero and all assertions passed.
+    limitations:
+      - No implementation, test, build, provider, or release evidence exists in
+        this planning record.

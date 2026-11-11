@@ -1,0 +1,189 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0002",
+  "status": "planned",
+  "title": "Implement composable acyclic YAML graphs and nested components",
+  "type": "feature",
+  "objective": "Deliver release 0.2.0 with YAML-defined acyclic graphs that compose registered nodes and nested graphs through explicit state and port contracts.",
+  "repository": {
+    "root": "/home/michael/src/github/langgraph-exec",
+    "authority": "github"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "main"
+    },
+    "branch": {
+      "name": "wi-0002-phase-two-graphs",
+      "created": false,
+      "rationale": "The branch isolates WI-0002 implementation and release work."
+    }
+  },
+  "request": {
+    "source": "conversation",
+    "text": "Create WI-0002 for langgraph-exec: Deliver release 0.2.0 with YAML-defined acyclic graphs that compose registered nodes and nested graphs through explicit state and port contracts.",
+    "sha256": "b07473f612154c8b589bb4845413e32ead8e6e12082c25b9ca7cd19d996d309a"
+  },
+  "scope": [
+    {
+      "name": "component-imports",
+      "description": "Resolve trusted-root YAML imports, aliases, digests, and component dependency cycles.",
+      "reason": "Composition requires deterministic loading and fail-closed dependency resolution."
+    },
+    {
+      "name": "graph-contract",
+      "description": "Define graph artifacts with state fields, node instances, port bindings, edges, routes, and reducers.",
+      "reason": "A graph needs an explicit topology and state contract."
+    },
+    {
+      "name": "langgraph-backend",
+      "description": "Lower normalized acyclic graph IR into LangGraph StateGraph nodes, edges, reducers, START, and END.",
+      "reason": "LangGraph is the execution backend for phase-two composition."
+    },
+    {
+      "name": "nested-composition",
+      "description": "Allow graphs to use phase-one-style nodes and other YAML graphs through public input/output ports.",
+      "reason": "Complex workflows must be assembled from reusable building blocks."
+    },
+    {
+      "name": "phase-two-tests-release",
+      "description": "Add graph-specific deterministic tests and repeat the build, link, and CLI release gates.",
+      "reason": "Composition must be releasable without weakening direct-node evidence."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "loops",
+      "description": "Do not accept arbitrary cycles or unbounded back edges.",
+      "reason": "Explicit loop semantics are phase 3 work.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "persistence",
+      "description": "Do not require checkpointing, interrupt/resume, or durable side-effect receipts.",
+      "reason": "Those are later operational capabilities.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "compatibility",
+      "description": "Do not require phase-one node files to remain source-compatible with the revised phase-two node contract.",
+      "reason": "The compiler must make any migration/version boundary explicit.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "dynamic-code",
+      "description": "Do not allow YAML to load arbitrary JavaScript, shell commands, or executable expressions.",
+      "reason": "Only registered node implementations may execute.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0002_REQ_001",
+        "name": "imports",
+        "description": "A graph can import trusted YAML node/graph artifacts by deterministic relative path and alias.",
+        "reason": "Composition requires reusable artifact references.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_001_AC_001",
+            "description": "Missing imports, traversal, duplicate aliases, and import cycles fail before runtime compilation."
+          }
+        ]
+      },
+      {
+        "id": "WI-0002_REQ_002",
+        "name": "graph-state",
+        "description": "A graph declares state fields, public inputs/outputs, explicit port bindings, and deterministic reducers.",
+        "reason": "Parallel and nested execution need a closed state contract.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_002_AC_001",
+            "description": "Unknown paths, undeclared writes, invalid bindings, and reducer conflicts are rejected."
+          }
+        ]
+      },
+      {
+        "id": "WI-0002_REQ_003",
+        "name": "acyclic-execution",
+        "description": "A graph compiles and runs fixed and conditional DAG edges through a LangGraph backend.",
+        "reason": "Phase 2 establishes graph execution without loop ambiguity.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_003_AC_001",
+            "description": "Reachable valid DAGs execute deterministically and malformed/cyclic graphs fail closed."
+          }
+        ]
+      },
+      {
+        "id": "WI-0002_REQ_004",
+        "name": "nested-components",
+        "description": "A graph can use another YAML graph as a public-port subgraph without leaking child private state.",
+        "reason": "Building blocks must compose recursively.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_004_AC_001",
+            "description": "Nested input/output mapping and failure propagation are unit-tested."
+          }
+        ]
+      },
+      {
+        "id": "WI-0002_REQ_005",
+        "name": "phase-two-tests-link",
+        "description": "The phase includes graph unit tests and a successful user-local CLI link/release gate.",
+        "reason": "Each phase must be independently releasable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_005_AC_001",
+            "description": "All phase-one regression tests plus phase-two tests pass before v0.2.0 delivery."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0002/steps/"
+}

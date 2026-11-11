@@ -1,0 +1,135 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0003
+taskUid: WI-0003-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0003-00000000
+taskType: test-strategy
+processingStatus: unprocessed
+title: Define the deterministic unit-test strategy (WI-0003)
+objective: Define the deterministic unit-test strategy for WI-0003.
+references:
+  required:
+    - .docs/work-items/WI-0003/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0003-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0003/
+    - .docs/
+  commitSubject: "WI-0003: WI-0003: 02: test-strategy phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
+  intent:
+    summary: "Define the deterministic unit-test strategy for WI-0003: Deliver
+      release 0.3.0 with explicit bounded loops, compiler-enforced termination
+      budgets, deterministic loop execution, and loop inspection."
+    inputs:
+      - id: INPUT-PHASE
+        kind: constraint
+        ref: "#constraint/PHASE"
+        purpose: The phase contract and release boundary.
+        required: true
+    requirements:
+      - id: REQ-001
+        kind: requirement
+        statement: "Define the deterministic unit-test strategy for WI-0003: Deliver
+          release 0.3.0 with explicit bounded loops, compiler-enforced
+          termination budgets, deterministic loop execution, and loop
+          inspection."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+    invariants:
+      - id: INV-001
+        statement: Tests remain deterministic and do not require live providers.
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: "Define the deterministic unit-test strategy for WI-0003: Deliver
+          release 0.3.0 with explicit bounded loops, compiler-enforced
+          termination budgets, deterministic loop execution, and loop
+          inspection."
+        inputRefs:
+          - INPUT-PHASE
+        requirementRefs:
+          - REQ-001
+        invariantRefs:
+          - INV-001
+    nonGoals:
+      - Do not claim provider or production behavior from local unit tests.
+  result:
+    status: defined
+    testCases:
+      - id: TC-001
+        title: Reject invalid event before persistence
+        type: unit
+        requirementLevel: required
+        purpose: Prove the validation boundary for malformed input.
+        procedure:
+          executionMode: executable
+          target: Validation service unit test
+          steps:
+            - Construct an invalid event fixture.
+            - Invoke the validation service with a persistence spy.
+            - Assert rejection and verify the persistence spy was not called.
+          command: npm test -- --runInBand test/validation/service.test.ts
+        expectedOutcome: The service rejects the event and persistence receives zero calls.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-001
+        limitations:
+          - This check does not prove behavior against a real persistence
+            provider.
+    fixtures:
+      - id: FIX-001
+        name: invalid-event
+        purpose: Provide a stable malformed event for the negative path.
+        setup: Create the event object with a missing required field and a persistence
+          spy.
+        teardown: Reset the spy after the test.
+        sourceRefs:
+          - "#artifact/FIXTURE-INVALID-EVENT"
+    coverage:
+      - id: COV-001
+        requirementRefs:
+          - REQ-001
+        invariantRefs:
+          - INV-001
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-001
+        rationale: The unit test directly exercises rejection and the no-persistence
+          side effect.
+    minimumRequiredTestCaseRefs:
+      - TC-001
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+      - The strategy defines tests but does not execute them or prove provider,
+        deployment, or production behavior.

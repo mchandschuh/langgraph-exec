@@ -1,0 +1,91 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0003
+taskUid: WI-0003-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: unprocessed
+title: Define the phase architecture and contracts (WI-0003)
+objective: Define the phase architecture and contracts for WI-0003.
+references:
+  required:
+    - .docs/work-items/WI-0003/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0003/
+    - .docs/
+  commitSubject: "WI-0003: WI-0003: 01: design phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: "Define the phase architecture and contracts for WI-0003: Deliver
+      release 0.3.0 with explicit bounded loops, compiler-enforced termination
+      budgets, deterministic loop execution, and loop inspection."
+    objectives:
+      - "Define the phase architecture and contracts for WI-0003: Deliver
+        release 0.3.0 with explicit bounded loops, compiler-enforced termination
+        budgets, deterministic loop execution, and loop inspection."
+    inScope:
+      - Public contracts
+      - runtime boundaries
+      - deterministic validation
+    outOfScope:
+      - Implementation evidence
+      - live provider evidence
+      - production deployment
+    references: []
+    provenance:
+      referenceRefs: []
+      basis: This is an initial planning record derived from the phase scope and
+        repository proposal.
+      confidence: 90
+    considerations: []
+    activities: []
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets:
+      - structure
+      - contract
+  result:
+    summary: Planned design result; no design execution has been performed.
+    model:
+      name: wi-0003
+      kind: architecture
+      description: "Define the phase architecture and contracts for WI-0003: Deliver
+        release 0.3.0 with explicit bounded loops, compiler-enforced termination
+        budgets, deterministic loop execution, and loop inspection."
+    elements: []
+    relations: []
+    views: []
+    artifacts: []
+    outcomes: []
+    unresolvedQuestions: []
+    outputs: []
+    verificationObligations: []

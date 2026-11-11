@@ -15,7 +15,7 @@ metadata:
 
 # langgraph-exec
 
-`langgraph-exec` is the planned YAML-defined workflow CLI at
+`langgraph-exec` is the YAML-defined workflow CLI at
 `/home/michael/src/github/langgraph-exec`. It will use the provider-agnostic
 `llm` package at `/home/michael/src/github/llm` for LLM request/response
 execution.
@@ -26,9 +26,10 @@ execution.
 - **Phase 2 / WI-0002:** composition of nodes and nested acyclic graphs.
 - **Phase 3 / WI-0003:** explicit bounded loops.
 
-The initial repository scaffold exposes only provider-free `--help` and
-`--version`. Do not claim that `validate`, `inspect`, or `run` is implemented
-until the corresponding work-item phase is complete.
+Phase 1 provides a closed direct `llm.complete` node contract, provider-free
+`validate` and `inspect`, and bounded `run` execution through the injected
+`llm/request/v1` service boundary. Do not claim graph or loop behavior until
+the later work-item phases are complete.
 
 ## Safety boundary
 

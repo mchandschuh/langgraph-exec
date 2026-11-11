@@ -4,7 +4,7 @@ taskUid: WI-0001-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0001-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement the phase capability and tests (WI-0001)
 objective: Implement the phase capability and tests for WI-0001.
 references:
@@ -27,6 +27,7 @@ governance:
     - package.json
     - README.md
     - SKILL.md
+    - samples/
   commitSubject: "WI-0001: WI-0001: 03: implementation phase work"
   commitBody:
     requiredSections:
@@ -44,7 +45,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -79,6 +80,7 @@ task:
       - package.json
       - README.md
       - SKILL.md
+      - samples/
       - scripts/
       - bin/
     nonGoals:
@@ -87,31 +89,66 @@ task:
       - Implement validation handling.
       - Run the required test command.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Implementation is planned and has not been executed in the initial seed
-        commit.
+      summary: "Implemented the closed direct-node YAML parser, typed parameter and input binding resolver, injected llm/request/v1 executor, provider-free CLI commands, fixtures, and deterministic tests."
       changes:
         - id: CHANGE-001
           type: production-code
-          summary: Reject malformed events before persistence.
+          summary: "Add the closed node contract, YAML parser, resolver, and llm adapter boundary."
           objectiveRefs:
             - OBJ-001
           paths:
-            - src/validation/service.ts
+            - src/node.ts
+            - src/index.ts
         - id: CHANGE-002
-          type: test-code
-          summary: Add the invalid-event regression test.
+          type: production-code
+          summary: "Implement validate, inspect, and run CLI behavior with bounded exit codes and response output."
           objectiveRefs:
             - OBJ-001
           paths:
-            - test/validation/service.test.ts
+            - src/cli/main.ts
+        - id: CHANGE-003
+          type: test-code
+          summary: "Add deterministic node, adapter, parameter, mapping, and CLI tests with local fixtures."
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - tests/node.test.ts
+            - tests/scaffold.test.ts
+            - tests/fixtures/valid-node.yaml
+            - tests/fixtures/invalid-yaml.yaml
+            - tests/fixtures/unknown-field.yaml
+            - tests/fixtures/input.json
+            - samples/direct-completion.yml
+            - samples/input.json
+            - samples/README.md
+        - id: CHANGE-004
+          type: configuration
+          summary: "Add yaml parsing and the existing local llm package as runtime dependencies."
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - package.json
+            - yarn.lock
       testImplementations:
         - testCaseRef: "#test-case/TC-001"
-          path: test/validation/service.test.ts
-          selector: rejects invalid event before persistence
+          path: tests/node.test.ts
+          selector: valid direct-node YAML exposes implementation, parameters, and ports
+        - testCaseRef: "#test-case/TC-002"
+          path: tests/node.test.ts
+          selector: malformed YAML and unknown fields are rejected before execution
+        - testCaseRef: "#test-case/TC-003"
+          path: tests/node.test.ts
+          selector: parameter defaults and explicit overrides resolve into the final request
+        - testCaseRef: "#test-case/TC-004"
+          path: tests/node.test.ts
+          selector: fake completion service captures llm request and returns response envelope
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/node.test.ts
+          selector: CLI validate and inspect remain provider-free and invalid input is nonzero
     verification:
-      status: not-run
+      status: passed
       objectiveRefs:
         - OBJ-001
       tests:
@@ -119,9 +156,31 @@ task:
           type: unit
           testCaseRefs:
             - "#test-case/TC-001"
-          command: npm test -- --runInBand test/validation/service.test.ts
+            - "#test-case/TC-002"
+            - "#test-case/TC-003"
+            - "#test-case/TC-004"
+            - "#test-case/TC-005"
+          target: Repository unit-test suite
+          command: yarn test
           status: passed
-          result: The test process exited zero and all assertions passed.
+          result: "9 tests passed with no live provider dependency."
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-001"
+            - "#test-case/TC-002"
+          target: TypeScript compiler
+          command: yarn typecheck
+          status: passed
+          result: TypeScript typecheck exited zero.
+        - id: EXEC-003
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-001"
+            - "#test-case/TC-004"
+          target: Package build
+          command: yarn build
+          status: passed
+          result: TypeScript build emitted dist output and exited zero.
     limitations:
-      - No implementation, test, build, provider, or release evidence exists in
-        this planning record.
+      - "Unit, static, and CLI-audit evidence does not prove live provider availability, deployment readiness, production safety, or external side-effect recovery."

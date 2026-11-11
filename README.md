@@ -15,10 +15,10 @@ The repository is delivered in three independently releasable phases:
 
 ## Current state
 
-This initial commit establishes the package, CLI, installation script, skill
-documentation, and phased work-item records. The CLI currently supports
-provider-free `--help` and `--version`; the `validate`, `inspect`, and `run`
-command boundaries are reserved for Phase 1.
+Phase 1 implements a closed direct `llm.complete` node contract, typed parameter
+and input bindings, provider-free `validate`/`inspect`, and bounded `run`
+execution through the injected `/home/michael/src/github/llm` service boundary.
+The remaining phases add graph composition and explicit loops.
 
 ## Planned architecture
 
@@ -62,6 +62,18 @@ npm --prefix "$HOME/.local" link /home/michael/src/github/langgraph-exec
 command -v langgraph-exec
 langgraph-exec --help
 ```
+
+## Sample
+
+From the repository root, execute the direct-completion sample with:
+
+```bash
+yarn build
+yarn start run samples/direct-completion.yml --input samples/input.json
+```
+
+See [`samples/README.md`](./samples/README.md) for provider-free validation
+and inspection commands.
 
 ## Design constraints
 

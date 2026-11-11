@@ -1,0 +1,14 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/node/v1
+kind: node
+name: invalid-node
+implementation: llm.complete
+unexpected: true
+parameters: {}
+ports:
+  inputs: {}
+  outputs:
+    response:
+      type: object
+bindings:
+  task: input.task
+  systemPrompt: input.systemPrompt

@@ -10,6 +10,6 @@ test('CLI version is provider-free and succeeds', async () => {
   assert.equal(await main(['--version']), 0);
 });
 
-test('reserved execution commands fail closed before runtime implementation exists', async () => {
-  assert.equal(await main(['run', 'example.yml']), 2);
+test('execution command reports a missing component with a stable nonzero result', async () => {
+  assert.equal(await main(['run', 'example.yml', '--input', 'input.json']), 1);
 });

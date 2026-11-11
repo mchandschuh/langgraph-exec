@@ -4,7 +4,7 @@ taskUid: WI-0001-10000000
 orderKey: "10000000"
 parentTaskUid: WI-0001-00000000
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the deterministic unit-test strategy (WI-0001)
 objective: Define the deterministic unit-test strategy for WI-0001.
 references:
@@ -38,7 +38,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
@@ -87,35 +87,129 @@ task:
     status: defined
     testCases:
       - id: TC-001
-        title: Reject invalid event before persistence
+        title: Parse a valid closed direct-node YAML document
         type: unit
         requirementLevel: required
-        purpose: Prove the validation boundary for malformed input.
+        purpose: Prove that the phase-one artifact exposes its implementation, parameters, ports, and bindings without graph topology.
         procedure:
           executionMode: executable
-          target: Validation service unit test
+          target: YAML node parser
           steps:
-            - Construct an invalid event fixture.
-            - Invoke the validation service with a persistence spy.
-            - Assert rejection and verify the persistence spy was not called.
-          command: npm test -- --runInBand test/validation/service.test.ts
-        expectedOutcome: The service rejects the event and persistence receives zero calls.
+            - Load the valid YAML fixture.
+            - Parse and validate the closed node contract.
+            - Assert the registered llm.complete implementation and declared ports are present.
+          command: yarn test
+        expectedOutcome: The fixture parses to a normalized direct node with no graph fields.
         passCriteria: The test process exits zero and all assertions pass.
         evidenceTier: unit
         fixtureRefs:
-          - FIX-001
+          - FIX-VALID-NODE
         limitations:
-          - This check does not prove behavior against a real persistence
-            provider.
+          - This check does not prove provider behavior.
+      - id: TC-002
+        title: Reject malformed or unknown YAML fields before execution
+        type: unit
+        requirementLevel: required
+        purpose: Prove the closed validation boundary and no-provider behavior for invalid artifacts.
+        procedure:
+          executionMode: executable
+          target: YAML node parser
+          steps:
+            - Load malformed and unknown-field fixtures.
+            - Assert a bounded validation error.
+            - Assert the fake completion service was not called.
+          command: yarn test
+        expectedOutcome: Invalid definitions fail deterministically before service invocation.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-INVALID-YAML
+          - FIX-UNKNOWN-FIELD
+        limitations:
+          - This check does not prove behavior against an external provider.
+      - id: TC-003
+        title: Resolve parameter defaults, overrides, and input mappings
+        type: unit
+        requirementLevel: required
+        purpose: Prove typed parameter resolution and runtime input bindings.
+        procedure:
+          executionMode: executable
+          target: Direct node resolver
+          steps:
+            - Execute a node with no override and assert defaults.
+            - Execute the same node with parameter and input overrides.
+            - Capture the constructed request.
+          command: yarn test
+        expectedOutcome: Defaults apply predictably and explicit values override them with type validation.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-VALID-NODE
+        limitations:
+          - This check does not prove provider behavior.
+      - id: TC-004
+        title: Capture the final llm request and map the closed response
+        type: unit
+        requirementLevel: required
+        purpose: Prove the injected llm/request/v1 boundary without network activity.
+        procedure:
+          executionMode: executable
+          target: Direct node executor with fake completion service
+          steps:
+            - Inject a fake service that records the request and returns a success envelope.
+            - Execute the node.
+            - Assert request fields, response envelope, and bounded provider-error handling.
+          command: yarn test
+        expectedOutcome: The fake service receives the final request and the node returns the service envelope unchanged.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-VALID-NODE
+        limitations:
+          - This check does not prove authenticated provider availability.
+      - id: TC-005
+        title: Exercise provider-free CLI validation and inspection
+        type: unit
+        requirementLevel: required
+        purpose: Prove stable CLI help, version, validation, inspection, and invalid-input exit behavior.
+        procedure:
+          executionMode: executable
+          target: CLI command boundary
+          steps:
+            - Invoke help and version.
+            - Invoke validate and inspect against the valid fixture.
+            - Invoke validate against an invalid fixture and assert a nonzero result.
+          command: yarn test
+        expectedOutcome: Offline commands succeed or fail deterministically without initializing a provider.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-VALID-NODE
+          - FIX-INVALID-YAML
+        limitations:
+          - "This check does not prove provider availability or production readiness."
     fixtures:
-      - id: FIX-001
-        name: invalid-event
-        purpose: Provide a stable malformed event for the negative path.
-        setup: Create the event object with a missing required field and a persistence
-          spy.
-        teardown: Reset the spy after the test.
+      - id: FIX-VALID-NODE
+        name: valid-direct-node
+        purpose: Provide a complete phase-one llm.complete node with defaults and bindings.
+        setup: Load a repository-local YAML fixture with a parameterized task and system prompt.
+        teardown: No external state is created.
         sourceRefs:
-          - "#artifact/FIXTURE-INVALID-EVENT"
+          - "#artifact/FIXTURE-VALID-NODE"
+      - id: FIX-INVALID-YAML
+        name: invalid-yaml
+        purpose: Provide malformed YAML for the negative path.
+        setup: Load a fixture with an unterminated YAML collection.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-INVALID-YAML"
+      - id: FIX-UNKNOWN-FIELD
+        name: unknown-node-field
+        purpose: Provide a syntactically valid node with a forbidden property.
+        setup: Load a fixture containing an undeclared node field.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-UNKNOWN-FIELD"
     coverage:
       - id: COV-001
         requirementRefs:
@@ -126,10 +220,27 @@ task:
           - OBJ-001
         testCaseRefs:
           - TC-001
-        rationale: The unit test directly exercises rejection and the no-persistence
-          side effect.
+        rationale: The unit test directly exercises the phase-one artifact contract.
+      - id: COV-002
+        requirementRefs:
+          - REQ-001
+          - REQ-002
+        invariantRefs:
+          - INV-001
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-002
+          - TC-003
+          - TC-004
+          - TC-005
+        rationale: The suite covers closed validation, resolution, injected execution, response mapping, and CLI boundaries.
     minimumRequiredTestCaseRefs:
       - TC-001
+      - TC-002
+      - TC-003
+      - TC-004
+      - TC-005
     recommendedTestCaseRefs: []
     evidenceLimitations:
       - The strategy defines tests but does not execute them or prove provider,

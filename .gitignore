@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.npm/
+.yarn/cache/
+.yarn/install-state.gz
+.cline-iterations/
+.docs/work-items/*/artifacts/

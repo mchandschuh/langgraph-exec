@@ -4,7 +4,7 @@ taskUid: WI-0001-50000000
 orderKey: "50000000"
 parentTaskUid: WI-0001-00000000
 taskType: delivery
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Deliver the local npm-linked phase release (WI-0001)
 objective: Deliver the local npm-linked phase release for WI-0001.
 references:
@@ -44,7 +44,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
@@ -91,20 +91,32 @@ task:
       - Do not deploy to production.
       - Do not approve the release.
   result:
-    status: blocked
-    summary: Delivery is planned and has not been executed in the initial seed commit.
+    status: delivered
+    summary: "Delivered the locally built and npm-linked langgraph-exec 0.1.0 package with passing CLI smoke checks."
     artifacts:
       - id: ART-001
         kind: package
-        path: dist/sdlc-release.tar.gz
-        checksum: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+        path: dist/index.js
+        checksum: sha256:b90c2034b95aef047cb7b95399d1d02b8d2c0f66a0634074d6ed36a9858089b6
+      - id: ART-002
+        kind: package
+        path: dist/index.d.ts
+        checksum: sha256:4a81a1bd3c7584572fef0cfd6277944521f9f7ea3c2510d48ccb5a1ff2f0a568
+      - id: ART-003
+        kind: link
+        path: package.json
+        checksum: sha256:e4c9690d1a12259790e8e174a52104228022c74a62e32417a853aba9a71892c0
     executions:
       - id: EXEC-001
         procedureRef: "#procedure/PROC-001"
         result:
           status: passed
-          summary: The package was built successfully.
-        command: npm run build && npm run package
+          summary: "Typecheck, 9-test suite, build, user-local link, command discovery, help/version, validate, and inspect all succeeded."
+          assertions:
+            - "command -v langgraph-exec resolved /home/michael/.local/bin/langgraph-exec."
+            - "The linked CLI reported version 0.1.0."
+            - "The valid fixture passed validate and inspect reported providerAccess none."
+        command: "yarn typecheck && yarn test && yarn build && npm --prefix \"$HOME/.local\" link /home/michael/src/github/langgraph-exec && langgraph-exec --help && langgraph-exec --version"
     limitations:
-      - No local link, tag, registry publication, deployment, or production
-        evidence is claimed.
+      - "The delivery is user-local npm-link evidence only; it is not registry publication, deployment, or production installation evidence."
+      - "No live provider call was made."

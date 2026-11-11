@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0001",
-  "status": "planned",
+  "status": "complete",
   "title": "Implement direct YAML LLM invocation and CLI execution",
   "type": "feature",
   "objective": "Deliver a minimal, locally runnable langgraph-exec release that executes one parameterized LLM node from YAML through the existing llm package boundary.",

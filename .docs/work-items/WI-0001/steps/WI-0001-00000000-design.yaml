@@ -4,7 +4,7 @@ taskUid: WI-0001-00000000
 orderKey: "00000000"
 parentTaskUid: null
 taskType: design
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the phase architecture and contracts (WI-0001)
 objective: Define the phase architecture and contracts for WI-0001.
 references:
@@ -37,7 +37,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
@@ -59,9 +59,24 @@ task:
       - Implementation evidence
       - live provider evidence
       - production deployment
-    references: []
+    references:
+      - id: REF-001
+        type: document
+        locator: README.md
+        description: "Repository architecture and phase boundary documentation."
+      - id: REF-002
+        type: repositoryPath
+        locator: package.json
+        description: "Package scripts, exports, and runtime dependency boundary."
+      - id: REF-003
+        type: document
+        locator: SKILL.md
+        description: "Operational safety and release workflow guidance."
     provenance:
-      referenceRefs: []
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
       basis: This is an initial planning record derived from the phase scope and
         repository proposal.
       confidence: 90
@@ -76,7 +91,7 @@ task:
       - structure
       - contract
   result:
-    summary: Planned design result; no design execution has been performed.
+    summary: "Defined the closed phase-one node contract, parameter resolution rules, llm/request/v1 adapter boundary, and provider-free CLI boundaries."
     model:
       name: wi-0001
       kind: architecture
@@ -84,11 +99,236 @@ task:
         minimal, locally runnable langgraph-exec release that executes one
         parameterized LLM node from YAML through the existing llm package
         boundary."
-    elements: []
-    relations: []
-    views: []
-    artifacts: []
-    outcomes: []
+    elements:
+      - id: E-001
+        type: contract
+        name: direct-node-yaml
+        description: "A closed YAML document with schema, kind, name, implementation, parameters, ports, and bindings."
+        provenance:
+          referenceRefs: []
+          basis: "The element is derived from the phase-one direct-node requirement and the implemented parser boundary."
+          confidence: 95
+      - id: E-002
+        type: runtime
+        name: parameter-resolution
+        description: "Parameters are declared with types, defaults, and optional required flags; bindings resolve request fields from parameter.* or input.* references."
+        provenance:
+          referenceRefs: []
+          basis: "The element records the typed resolution boundary required before constructing an LLM request."
+          confidence: 95
+      - id: E-003
+        type: adapter
+        name: llm-request-v1
+        description: "The registered llm.complete implementation constructs an llm/request/v1 request and delegates to an injected completion service returning llm/response/v1."
+        provenance:
+          referenceRefs: []
+          basis: "The element follows the existing llm package ownership of provider transport and response envelopes."
+          confidence: 98
+      - id: E-004
+        type: interface
+        name: cli-commands
+        description: "validate and inspect load YAML without provider access; run loads JSON input, invokes the injected service, and returns a bounded response envelope."
+        provenance:
+          referenceRefs: []
+          basis: "The element captures the phase CLI acceptance boundary."
+          confidence: 95
+    relations:
+      - id: REL-001
+        type: resolves
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-002
+        description: "The node artifact supplies declarations consumed by parameter resolution."
+        provenance:
+          referenceRefs: []
+          basis: "The runtime resolves declared node parameters before execution."
+          confidence: 95
+      - id: REL-002
+        type: constructs
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-003
+        description: "Resolved parameters and input bindings construct the final llm/request/v1 request."
+        provenance:
+          referenceRefs: []
+          basis: "The adapter receives only the normalized request after resolution."
+          confidence: 95
+      - id: REL-003
+        type: exposed-by
+        source:
+          type: element
+          id: E-003
+        target:
+          type: element
+          id: E-004
+        description: "The CLI exposes the direct execution boundary while keeping provider access out of validation and inspection."
+        provenance:
+          referenceRefs: []
+          basis: "The CLI delegates run execution and keeps validate/inspect provider-free."
+          confidence: 95
+    views:
+      - id: V-001
+        type: execution-flow
+        name: direct-node-execution
+        description: "The phase-one flow from YAML validation through request resolution and the injected LLM service."
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+        provenance:
+          referenceRefs: []
+          basis: "The view makes the bounded execution sequence explicit for implementation and testing."
+          confidence: 95
+    artifacts:
+      - id: A-001
+        type: interfaceDefinition
+        name: node-runtime-contract
+        description: "TypeScript implementation of the node parser, resolver, and executor."
+        locator: src/node.ts
+        format: typescript
+        status: complete
+        provenance:
+          referenceRefs: []
+          basis: "The artifact is the implemented direct-node runtime boundary."
+          confidence: 98
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+      - id: A-002
+        type: interfaceDefinition
+        name: cli-command-contract
+        description: "CLI implementation for provider-free validation/inspection and bounded execution."
+        locator: src/cli/main.ts
+        format: typescript
+        status: complete
+        provenance:
+          referenceRefs: []
+          basis: "The artifact is the implemented phase CLI boundary."
+          confidence: 98
+        elementRefs:
+          - E-004
+      - id: A-003
+        type: document
+        name: deterministic-test-suite
+        description: "Fixtures and tests covering the phase-one node, adapter, parameter, mapping, and CLI contracts."
+        locator: tests/node.test.ts
+        format: typescript
+        status: complete
+        provenance:
+          referenceRefs: []
+          basis: "The artifact is the deterministic evidence boundary for the implementation."
+          confidence: 98
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+    outcomes:
+      - id: O-001
+        type: implementationHandoff
+        statement: "Invalid YAML, unknown fields, unsupported implementations, missing inputs, and invalid parameter values fail before service invocation."
+        status: accepted
+        impact: 95
+        confidence: 96
+        referenceRefs: []
+        elementRefs:
+          - E-001
+          - E-002
+        artifactRefs:
+          - A-001
+      - id: O-002
+        type: implementationHandoff
+        statement: "Provider failures remain inside the llm/response/v1 envelope and are not expanded into provider-specific runtime behavior."
+        status: accepted
+        impact: 95
+        confidence: 96
+        referenceRefs: []
+        elementRefs:
+          - E-003
+        artifactRefs:
+          - A-001
     unresolvedQuestions: []
-    outputs: []
-    verificationObligations: []
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: complete
+        sourceRefs:
+          - REF-001
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+        description: "Versioned direct-node and injected completion-service contract."
+      - id: OUT-002
+        category: implementation-handoff
+        status: complete
+        sourceRefs:
+          - REF-001
+        elementRefs:
+          - E-004
+        artifactRefs:
+          - A-002
+        description: "CLI command, output, and exit-code contract."
+      - id: OUT-003
+        category: test-handoff
+        status: complete
+        sourceRefs:
+          - REF-001
+        artifactRefs:
+          - A-003
+        description: "Deterministic test and fixture handoff for the phase release gate."
+    verificationObligations:
+      - id: VER-001
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+        testCaseRefs: []
+        method:
+          type: unit-test
+          steps:
+            - "Run the deterministic YAML parser tests against valid and invalid fixtures."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Validate valid and invalid YAML fixtures without provider access."
+      - id: VER-002
+        kind: contract-test
+        status: planned
+        sourceRefs:
+          - REF-001
+        testCaseRefs: []
+        method:
+          type: contract-test
+          steps:
+            - "Capture the final llm/request/v1 request with a fake service."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Verify the injected LLM request/response boundary."
+      - id: VER-003
+        kind: build
+        status: planned
+        sourceRefs:
+          - REF-001
+        testCaseRefs: []
+        method:
+          type: build
+          steps:
+            - "Run typecheck, tests, build, local link, and CLI smoke checks."
+          command: yarn typecheck && yarn test && yarn build
+        requiredFor:
+          - implementable
+        description: "Run the local phase release gate."

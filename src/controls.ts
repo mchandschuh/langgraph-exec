@@ -105,3 +105,9 @@ export async function mapControl<TInput, TOutput>(items: readonly TInput[], mapp
   emit(debug, 'control.map.success', { items: values.length, output: values });
   return { status: 'success', values };
 }
+
+export async function tryControl<TInput, TOutput>(input: TInput, execute: (input: TInput, debug?: DebugSink) => Promise<TOutput>, debug?: DebugSink): Promise<{ status: 'success' | 'failure'; output?: TOutput; error?: string }> {
+  emit(debug, 'control.try.start', { input });
+  try { const output = await execute(input, debug); emit(debug, 'control.try.success', { output }); return { status: 'success', output }; }
+  catch (error) { const message = error instanceof Error ? error.message.slice(0, 500) : 'Control try body failed.'; emit(debug, 'control.try.failure', { error: message }); return { status: 'failure', error: message }; }
+}

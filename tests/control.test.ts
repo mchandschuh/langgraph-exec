@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { executeJoin, executeParallel, joinParallel, mapControl, selectControlRoute } from '../src/controls.js';
+import { executeJoin, executeParallel, joinParallel, mapControl, selectControlRoute, tryControl } from '../src/controls.js';
 
 test('control.parallel runs bounded branches concurrently and captures outputs', async () => {
   const events: string[] = [];
@@ -43,4 +43,10 @@ test('control.map enforces a finite item limit and preserves order', async () =>
   assert.deepEqual(mapped, { status: 'success', values: ['0:2', '1:4', '2:6'] });
   const limited = await mapControl([1, 2, 3], async (value) => value, 2);
   assert.equal(limited.status, 'item_limit_exceeded');
+});
+
+test('control.try returns explicit success and bounded failure branches', async () => {
+  assert.deepEqual(await tryControl('value', async (value) => `${value}-ok`), { status: 'success', output: 'value-ok' });
+  const failure = await tryControl('value', async () => { throw new Error('bounded failure'); });
+  assert.deepEqual(failure, { status: 'failure', error: 'bounded failure' });
 });

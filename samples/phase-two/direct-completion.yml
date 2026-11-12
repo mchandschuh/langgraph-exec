@@ -1,0 +1,40 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/node/v1
+kind: node
+name: phase-two-direct-completion
+implementation: llm.complete
+parameters:
+  provider:
+    type: string
+    default: openrouter
+  model:
+    type: string
+    default: openai/gpt-5.6-luna
+  thinking:
+    type: string
+    default: high
+  maxFailedAttempts:
+    type: integer
+    default: 3
+  maxIterations:
+    type: integer
+    default: 2
+  systemPrompt:
+    type: string
+    default: Return a concise answer to the supplied task.
+ports:
+  inputs:
+    task:
+      type: string
+      required: true
+  outputs:
+    response:
+      type: object
+      required: true
+bindings:
+  provider: parameter.provider
+  model: parameter.model
+  thinking: parameter.thinking
+  maxFailedAttempts: parameter.maxFailedAttempts
+  maxIterations: parameter.maxIterations
+  task: input.task
+  systemPrompt: parameter.systemPrompt

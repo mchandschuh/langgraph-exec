@@ -8,6 +8,7 @@ import type { GraphComponent } from '../src/graph.js';
 import { main } from '../src/cli/main.js';
 
 const graphFixture = (name: string) => join(process.cwd(), 'tests', 'fixtures', 'graphs', name);
+const phaseTwoSample = join(process.cwd(), 'samples', 'phase-two', 'nested-answer.yml');
 
 function component(name: string, execute: GraphComponent['execute'], inputs = ['in'], outputs = ['out']): GraphComponent {
   return { name, inputs: Object.fromEntries(inputs.map((key) => [key, { type: 'string' }])), outputs: Object.fromEntries(outputs.map((key) => [key, { type: 'string' }])), execute };
@@ -63,4 +64,10 @@ test('nested graphs expose public ports and keep private state internal', async 
 test('CLI validates and inspects an imported graph without provider access', async () => {
   assert.equal(await main(['validate', graphFixture('import-root.yml')]), 0);
   assert.equal(await main(['inspect', graphFixture('import-root.yml'), '--resolved', '--format', 'json']), 0);
+});
+
+test('phase-two sample composes an imported child graph through public ports', async () => {
+  const graph = await compileGraphFile(phaseTwoSample, { completionService });
+  assert.deepEqual(await graph.invoke({ task: 'sample task' }), { result: { task: 'sample task' } });
+  assert.equal(graph.definition.name, 'sample-nested-answer');
 });

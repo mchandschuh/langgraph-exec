@@ -4,7 +4,7 @@ taskUid: WI-0003-10000000
 orderKey: "10000000"
 parentTaskUid: WI-0003-00000000
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the deterministic unit-test strategy (WI-0003)
 objective: Define the deterministic unit-test strategy for WI-0003.
 references:
@@ -38,7 +38,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
@@ -55,29 +55,72 @@ task:
     requirements:
       - id: REQ-001
         kind: requirement
-        statement: "Define the deterministic unit-test strategy for WI-0003: Deliver
-          release 0.3.0 with explicit bounded loops, compiler-enforced
-          termination budgets, deterministic loop execution, and loop
-          inspection."
+        statement: "Valid loop declarations expose entry, body, exit, condition, counter, finite maxIterations, and exhaustion policy."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: "Undeclared cycles, missing exits/limits, bypass routes, and nested-bound violations fail closed."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: "Bounded loops support early exit, deterministic exhaustion, graph-wide maxSteps, and structured failure routing."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: "Phase-two nodes and nested graphs compose inside bounded loops without leaking private state."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-005
+        kind: requirement
+        statement: "Loop tests, inspection, build, link, and prior regression tests pass for the phase release."
         inputRefs:
           - INPUT-PHASE
         required: true
     invariants:
       - id: INV-001
-        statement: Tests remain deterministic and do not require live providers.
+        statement: Tests use fake components and do not require live providers.
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: INV-002
+        statement: Every loop and graph execution path has a finite compiler-enforced work budget.
         inputRefs:
           - INPUT-PHASE
         required: true
     objectives:
       - id: OBJ-001
-        statement: "Define the deterministic unit-test strategy for WI-0003: Deliver
-          release 0.3.0 with explicit bounded loops, compiler-enforced
-          termination budgets, deterministic loop execution, and loop
-          inspection."
+        statement: Verify loop contract validation and safety failures.
         inputRefs:
           - INPUT-PHASE
         requirementRefs:
           - REQ-001
+          - REQ-002
+        invariantRefs:
+          - INV-001
+          - INV-002
+      - id: OBJ-002
+        statement: Verify bounded execution outcomes, counters, nested bodies, and failure routing.
+        inputRefs:
+          - INPUT-PHASE
+        requirementRefs:
+          - REQ-003
+          - REQ-004
+        invariantRefs:
+          - INV-001
+          - INV-002
+      - id: OBJ-003
+        statement: Verify regression, inspection, and local release behavior.
+        inputRefs:
+          - INPUT-PHASE
+        requirementRefs:
+          - REQ-005
         invariantRefs:
           - INV-001
     nonGoals:
@@ -86,49 +129,247 @@ task:
     status: defined
     testCases:
       - id: TC-001
-        title: Reject invalid event before persistence
+        title: Validate explicit loop contracts and effective bounds
         type: unit
         requirementLevel: required
-        purpose: Prove the validation boundary for malformed input.
+        purpose: Prove valid loop declarations expose effective limits and malformed loop definitions fail before compilation.
         procedure:
           executionMode: executable
-          target: Validation service unit test
+          target: Loop contract validator
           steps:
-            - Construct an invalid event fixture.
-            - Invoke the validation service with a persistence spy.
-            - Assert rejection and verify the persistence spy was not called.
-          command: npm test -- --runInBand test/validation/service.test.ts
-        expectedOutcome: The service rejects the event and persistence receives zero calls.
+            - Parse a valid loop with entry, body, exit, condition, counter, maxIterations, maxSteps, and exhaustion policy.
+            - Parse fixtures missing exits, missing finite limits, invalid conditions, and invalid policies.
+            - Assert valid effective bounds and fail-closed errors.
+          command: yarn test
+        expectedOutcome: Valid loops normalize with finite limits and invalid loops fail before backend compilation.
         passCriteria: The test process exits zero and all assertions pass.
         evidenceTier: unit
         fixtureRefs:
-          - FIX-001
+          - FIX-VALID-LOOP
+          - FIX-INVALID-LOOP
         limitations:
-          - This check does not prove behavior against a real persistence
-            provider.
+          - This check does not prove runtime provider behavior.
+      - id: TC-002
+        title: Reject arbitrary cycles and budget bypass routes
+        type: unit
+        requirementLevel: required
+        purpose: Prove that only declared loop transitions may cycle and all paths remain within finite budgets.
+        procedure:
+          executionMode: executable
+          target: Loop safety validator
+          steps:
+            - Load an undeclared cycle fixture and assert rejection.
+            - Load a loop with a bypass route around the counter/budget and assert rejection.
+            - Load nested loops whose effective limits exceed the parent budget and assert rejection.
+          command: yarn test
+        expectedOutcome: Unsafe cycles and budget bypasses fail closed.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-ARBITRARY-CYCLE
+          - FIX-BYPASS-ROUTE
+          - FIX-NESTED-BOUNDS
+        limitations:
+          - This check does not prove backend behavior.
+      - id: TC-003
+        title: Execute early-exit and exhausted loops deterministically
+        type: component
+        requirementLevel: required
+        purpose: Prove graph-owned counters, early condition exit, maxIterations exhaustion, and structured terminal status.
+        procedure:
+          executionMode: executable
+          target: Bounded loop backend
+          steps:
+            - Execute a loop whose fake condition becomes true on the second iteration.
+            - Assert the counter and terminal status are deterministic.
+            - Execute a loop whose condition never becomes true and assert structured exhaustion at maxIterations.
+          command: yarn test
+        expectedOutcome: Early exit succeeds with the observed counter; exhaustion returns a bounded loop-limit result.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-EARLY-EXIT
+          - FIX-EXHAUSTION
+        limitations:
+          - This check uses fake loop-body components.
+      - id: TC-004
+        title: Enforce graph step budgets and nested loop bounds
+        type: component
+        requirementLevel: required
+        purpose: Prove maxSteps enforcement, nested bound multiplication, and parent-owned termination.
+        procedure:
+          executionMode: executable
+          target: Bounded loop backend
+          steps:
+            - Execute a loop whose iteration budget exceeds maxSteps.
+            - Execute a nested loop body and assert the effective nested budget is enforced.
+            - Assert the terminal result identifies step-budget exhaustion separately from iteration exhaustion.
+          command: yarn test
+        expectedOutcome: No loop path exceeds graph-owned work budgets.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STEP-BUDGET
+          - FIX-NESTED-LOOP
+        limitations:
+          - This check does not claim checkpoint/resume behavior.
+      - id: TC-005
+        title: Propagate loop-body failures and preserve phase-two composition
+        type: component
+        requirementLevel: required
+        purpose: Prove failure routing, nested graph loop bodies, and private-state isolation.
+        procedure:
+          executionMode: executable
+          target: Loop body composition
+          steps:
+            - Execute a loop body that returns a structured failure.
+            - Execute a loop whose body is a nested graph with public ports.
+            - Assert failure does not silently re-enter and nested private state remains hidden.
+          command: yarn test
+        expectedOutcome: Failures terminate through the declared policy and nested loop bodies compose through public ports.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-FAILURE
+          - FIX-NESTED-LOOP
+        limitations:
+          - This check does not prove durable side-effect recovery.
+      - id: TC-006
+        title: Inspect loops and run full regression/release behavior
+        type: unit
+        requirementLevel: required
+        purpose: Prove provider-free loop inspection plus all earlier regressions and local release commands.
+        procedure:
+          executionMode: executable
+          target: Repository regression and CLI suite
+          steps:
+            - Run all phase-one, phase-two, and phase-three tests.
+            - Inspect a loop graph and assert effective limits/counter metadata.
+            - Build and link the package through the user-local prefix.
+          command: yarn test
+        expectedOutcome: All regression/loop tests and provider-free inspection pass.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-VALID-LOOP
+        limitations:
+          - This check does not prove live provider or production behavior.
     fixtures:
-      - id: FIX-001
-        name: invalid-event
-        purpose: Provide a stable malformed event for the negative path.
-        setup: Create the event object with a missing required field and a persistence
-          spy.
-        teardown: Reset the spy after the test.
+      - id: FIX-VALID-LOOP
+        name: valid-bounded-loop
+        purpose: Provide a complete finite loop with entry, body, exit, condition, counter, maxIterations, maxSteps, and exhaustion policy.
+        setup: Load a repository-local loop graph fixture.
+        teardown: No external state is created.
         sourceRefs:
-          - "#artifact/FIXTURE-INVALID-EVENT"
+          - "#artifact/FIXTURE-VALID-LOOP"
+      - id: FIX-INVALID-LOOP
+        name: invalid-loop
+        purpose: Provide missing-exit, missing-limit, and invalid-condition loop fixtures.
+        setup: Load repository-local invalid loop fixtures.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-INVALID-LOOP"
+      - id: FIX-ARBITRARY-CYCLE
+        name: arbitrary-cycle
+        purpose: Provide an undeclared graph cycle.
+        setup: Load a graph with a back edge outside a loop declaration.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-ARBITRARY-CYCLE"
+      - id: FIX-BYPASS-ROUTE
+        name: bypass-route
+        purpose: Provide a route that bypasses loop counters or exits.
+        setup: Load a graph with an unsafe loop route.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-BYPASS-ROUTE"
+      - id: FIX-NESTED-BOUNDS
+        name: nested-bounds
+        purpose: Provide nested loops whose effective budgets must be enforced.
+        setup: Load a parent/child loop fixture.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-NESTED-BOUNDS"
+      - id: FIX-EARLY-EXIT
+        name: early-exit
+        purpose: Provide a loop body whose condition becomes true before the iteration limit.
+        setup: Load a deterministic fake-body loop fixture.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-EARLY-EXIT"
+      - id: FIX-EXHAUSTION
+        name: exhaustion
+        purpose: Provide a loop whose condition never becomes true.
+        setup: Load a deterministic exhaustion fixture.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-EXHAUSTION"
+      - id: FIX-STEP-BUDGET
+        name: step-budget
+        purpose: Provide a loop that exceeds graph maxSteps before maxIterations.
+        setup: Load a finite step-budget fixture.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-STEP-BUDGET"
+      - id: FIX-NESTED-LOOP
+        name: nested-loop
+        purpose: Provide a nested graph loop body with public ports.
+        setup: Load a nested loop-body fixture.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-NESTED-LOOP"
+      - id: FIX-FAILURE
+        name: loop-failure
+        purpose: Provide a loop body that returns a structured failure.
+        setup: Load a deterministic failure-routing fixture.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-FAILURE"
     coverage:
       - id: COV-001
         requirementRefs:
           - REQ-001
+          - REQ-002
         invariantRefs:
           - INV-001
+          - INV-002
         objectiveRefs:
           - OBJ-001
         testCaseRefs:
           - TC-001
-        rationale: The unit test directly exercises rejection and the no-persistence
-          side effect.
+          - TC-002
+        rationale: Contract and safety tests cover explicit bounds, invalid cycles, bypass routes, and nested budget rules.
+      - id: COV-002
+        requirementRefs:
+          - REQ-003
+          - REQ-004
+        invariantRefs:
+          - INV-001
+          - INV-002
+        objectiveRefs:
+          - OBJ-002
+        testCaseRefs:
+          - TC-003
+          - TC-004
+          - TC-005
+        rationale: Component tests cover early exit, exhaustion, maxSteps, nested loops, and failures.
+      - id: COV-003
+        requirementRefs:
+          - REQ-005
+        invariantRefs:
+          - INV-001
+        objectiveRefs:
+          - OBJ-003
+        testCaseRefs:
+          - TC-006
+        rationale: Regression, inspection, and release-gate testing preserves prior phases.
     minimumRequiredTestCaseRefs:
       - TC-001
+      - TC-002
+      - TC-003
+      - TC-004
+      - TC-005
+      - TC-006
     recommendedTestCaseRefs: []
     evidenceLimitations:
       - The strategy defines tests but does not execute them or prove provider,

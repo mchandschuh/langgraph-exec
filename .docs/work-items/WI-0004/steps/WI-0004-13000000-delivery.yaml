@@ -1,0 +1,125 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-13000000
+orderKey: "13000000"
+parentTaskUid: null
+taskType: delivery
+processingStatus: processing_completed
+title: Deliver the local npm-linked phase release (WI-0004)
+objective: Deliver the local npm-linked phase release for WI-0004.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0004-12000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0004/
+    - src/
+    - tests/
+    - scripts/
+    - bin/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0004: WI-0004: 15: delivery phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: "Deliver the local npm-linked phase release for WI-0004: Deliver
+      release 0.3.0 with explicit control nodes, compiler-enforced termination
+      budgets, deterministic loop execution, and capability sample inspection."
+    deliveryTypes:
+      - package
+      - release
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0004|30000000#result/R-001
+        purpose: Required phase validation result.
+        required: true
+    artifacts:
+      - id: ART-001
+        kind: package
+        path: dist/
+        purpose: Built package output.
+        required: true
+      - id: ART-002
+        kind: link
+        path: package.json
+        purpose: User-local npm-linked package registration.
+        required: true
+    procedures:
+      - id: PROC-001
+        sequence: 1
+        name: build-link-smoke
+        description: Build, link, and verify the phase CLI.
+        steps:
+          - Run the phase validation gate.
+          - Link the package using the user-local npm prefix.
+          - Verify command discovery and --help.
+        command: npm --prefix "$HOME/.local" link
+          /home/michael/src/github/langgraph-exec
+        expected:
+          result: The package is linked locally and the CLI help command succeeds.
+        required: true
+    nonGoals:
+      - Do not deploy to production.
+      - Do not approve the release.
+  result:
+    status: delivered
+    summary: "Delivered the locally built and npm-linked langgraph-exec 0.3.0 package with passing control-node CLI inspection checks."
+    artifacts:
+      - id: ART-001
+        kind: package
+        path: package.json
+        checksum: sha256:a971bc2768daafc928a6a369d3fcbb3432130b3ce1ce3d88150b0e12212bd2f4
+      - id: ART-002
+        kind: package
+        path: dist/index.js
+        checksum: sha256:2346f8ec849b5de11cfead430654ca567855f794492b1e24b848cadc4144a5d1
+      - id: ART-003
+        kind: package
+        path: dist/index.d.ts
+        checksum: sha256:01800a66e09505466d5de1981c854026e0b9af4573a6ee3eec32df25dabe3f6b
+      - id: ART-004
+        kind: link
+        path: package.json
+        checksum: sha256:a971bc2768daafc928a6a369d3fcbb3432130b3ce1ce3d88150b0e12212bd2f4
+    executions:
+      - id: EXEC-001
+        procedureRef: "#procedure/PROC-001"
+        result:
+          status: passed
+          summary: "Typecheck, 20-test suite, build, user-local link, command discovery, help/version, capability sample validate, and capability sample inspect all succeeded."
+          assertions:
+            - "command -v langgraph-exec resolved /home/michael/.local/bin/langgraph-exec."
+            - "The linked CLI reported version 0.3.0."
+            - "The all capability samples passed validate and inspect with providerAccess none."
+        command: "yarn typecheck && yarn test && yarn build && npm --prefix \"$HOME/.local\" link /home/michael/src/github/langgraph-exec && langgraph-exec --help && langgraph-exec --version"
+    limitations:
+      - "The delivery is user-local npm-link evidence only; it is not registry publication, deployment, or production installation evidence."
+      - "No live provider, checkpoint, interrupt/resume, durable side-effect recovery, or production behavior was exercised."

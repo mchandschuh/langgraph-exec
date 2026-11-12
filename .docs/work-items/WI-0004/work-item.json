@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0004",
-  "status": "active",
+  "status": "complete",
   "title": "Implement registered control-flow node types",
   "type": "feature",
   "objective": "Deliver a versioned control-node registry that provides explicit bounded loop, parallel, join, switch, map, try, retry, timeout, return, and fail semantics.",

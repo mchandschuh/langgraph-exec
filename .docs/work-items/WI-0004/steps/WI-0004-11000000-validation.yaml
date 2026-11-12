@@ -1,0 +1,134 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-11000000
+orderKey: "11000000"
+parentTaskUid: null
+taskType: validation
+processingStatus: processing_completed
+title: Validate the phase release gates (WI-0004)
+objective: Validate the phase release gates for WI-0004.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0004-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0004/
+    - src/
+    - tests/
+    - scripts/
+    - bin/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0004: WI-0004: 13: validation phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: "Validate the phase release gates for WI-0004: Deliver release 0.3.0
+      with explicit control nodes, compiler-enforced termination budgets,
+      deterministic loop execution, and capability sample inspection."
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0004|20000000#result/R-001
+        purpose: The implementation result to validate after execution.
+        required: true
+    targets:
+      - id: TARGET-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: The repository revision, build, tests, and linked CLI.
+        required: true
+    objectiveRefs:
+      - "#objective/OBJ-001"
+    testCaseRefs:
+      - "#test-case/TC-001"
+    procedures:
+      - id: VAL-001
+        sequence: 1
+        name: phase-release-gate
+        description: Run the phase typecheck, unit tests, build, user-local npm link,
+          and CLI smoke checks.
+        reason: The phase is independently releasable only after its local CLI gate
+          passes.
+        targetRefs:
+          - "#target/TARGET-REPOSITORY"
+        objectiveRefs: []
+        testCaseRefs:
+          - "#test-case/TC-001"
+        method:
+          executionMode: executable
+          target: Repository release gate
+          steps:
+            - Run yarn typecheck.
+            - Run yarn test.
+            - Run yarn build.
+            - Run npm --prefix "$HOME/.local" link
+              /home/michael/src/github/langgraph-exec.
+            - Run command -v langgraph-exec and langgraph-exec --help.
+          command: yarn typecheck && yarn test && yarn build
+        expected:
+          outcome: passed
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not claim that the design has been implemented.
+      - Do not claim provider or production behavior.
+  result:
+    status: passed
+    summary: "The control-node release gate passed: frozen dependencies, typecheck, 36 regression/control-node tests, build, user-local npm link, capability sample validate/inspect, CLI version 0.3.0, diff check, and forbidden-path inspection all succeeded."
+    executions:
+      - id: EXEC-001
+        procedureRef: "#procedure/VAL-001"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: "yarn install --frozen-lockfile, yarn typecheck, yarn test, yarn build, npm --prefix \"$HOME/.local\" link, command discovery, help/version, capability sample validate, and capability sample inspect all succeeded."
+          assertions:
+            - "The complete suite passed all 36 tests, including phase-one, phase-two, and all ten control-node coverage."
+            - "The linked executable resolved to /home/michael/.local/bin/langgraph-exec and reported 0.3.0."
+            - "All direct, nested-graph, and bounded-loop samples passed provider-free validation and inspection."
+            - "No forbidden .env, credentials, or secrets paths were written."
+        evidenceTier: cli-audit
+        evidence:
+          - kind: command
+            source: repository release gate
+            claim: "The complete control-node local release gate passed with frozen dependencies and all regression/control-node checks."
+            command: "yarn install --frozen-lockfile && yarn typecheck && yarn test && yarn build && npm --prefix \"$HOME/.local\" link /home/michael/src/github/langgraph-exec"
+          - kind: process
+            source: user-local npm prefix
+            claim: "command -v langgraph-exec resolved /home/michael/.local/bin/langgraph-exec; version 0.3.0, capability sample validate, and capability sample inspect succeeded."
+            command: "command -v langgraph-exec && langgraph-exec --help && langgraph-exec --version && langgraph-exec validate samples/bounded-loop/loop.yml"
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+      - "Local unit, component, static, and CLI-audit evidence does not prove live provider availability, checkpointing, interrupt/resume, durable side-effect recovery, deployment readiness, or production safety."
+    nonClaims:
+      - This result does not claim live provider availability.
+      - This result does not claim production readiness.

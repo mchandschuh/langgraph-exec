@@ -1,0 +1,138 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-12000000
+orderKey: "12000000"
+parentTaskUid: null
+taskType: review
+processingStatus: processing_completed
+title: Review the phase result and evidence boundary (WI-0004)
+objective: Review the phase result and evidence boundary for WI-0004.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0004-11000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0004/
+    - src/
+    - tests/
+    - scripts/
+    - bin/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0004: WI-0004: 14: review phase work"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: "Review the phase result and evidence boundary for WI-0004: Deliver
+      release 0.3.0 with explicit control nodes, compiler-enforced termination
+      budgets, deterministic loop execution, and capability sample inspection."
+    reviewKind: code
+    target:
+      taskType: validation
+      taskRef: WI-0004|30000000
+      result:
+        ref: WI-0004|30000000#result/R-001
+        sha256: sha256:1000000010000000100000001000000010000000100000001000000010000000
+    gateId: implementation-result
+    policyRef:
+      ref: .docs/sdlc/review-policy
+      sha256: sha256:1000000010000000100000001000000010000000100000001000000010000000
+    criteria:
+      - id: CRIT-001
+        statement: The phase remains within its declared scope and has the required test
+          and release evidence.
+        purpose: Prevent scope expansion and unsupported release claims.
+        required: true
+        evidenceRefs: []
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0004|30000000#result/R-001
+        purpose: Required validation result.
+        required: true
+        minimumTier: cli-audit
+    nonGoals: []
+    context:
+      - id: CTX-001
+        kind: contract
+        ref: .docs/work-items/WI-0004/work-item.json
+        purpose: Authoritative phase work item.
+        required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: "The WI-0004 implementation remains within the explicit control-node scope, satisfies the control-node scope/evidence acceptance boundary with passing local evidence, and preserves the explicit non-goals for persistence and live providers."
+    actor:
+      id: cline
+      role: implementation-reviewer
+      authorityRef: .docs/work-items/WI-0004/work-item.json
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: "The implementation, 36-test suite, build/link gate, control-node CLI/sample inspection, scope inspection, and forbidden-path inspection satisfy the review criterion."
+        evidenceRefs:
+          - EVID-001
+          - EVID-002
+          - EVID-003
+        findingRefs: []
+    findings: []
+    evidence:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0004|30000000#result/R-001
+        claim: "The completed validation result records a passing control-node release gate at cli-audit tier."
+        tier: cli-audit
+        source: referenced-result
+      - id: EVID-002
+        kind: test
+        ref: .docs/work-items/WI-0004/steps/WI-0004-20000000-implementation.yaml
+        claim: "The implementation result records 20 passing regression and control-node tests plus typecheck/build evidence."
+        tier: component
+        source: referenced-result
+      - id: EVID-003
+        kind: repository-state
+        ref: .docs/work-items/WI-0004/work-item.json
+        claim: "No forbidden secret paths, checkpointing, interrupt/resume, or out-of-scope control implementation were introduced."
+        tier: inspection
+        source: repository
+    limitations:
+      - "The review relies on local static, unit, component, and CLI-audit evidence and does not establish live provider, persistence, deployment, or production behavior."
+    nonClaims:
+      - This record does not claim authenticated provider use.
+      - This record does not claim checkpointing, interrupt/resume, or production safety.
+    reproducibility:
+      policyDigest: sha256:1000000010000000100000001000000010000000100000001000000010000000
+      renderedPromptDigest: sha256:1000000010000000100000001000000010000000100000001000000010000000
+      agentConfigurationDigest: sha256:1000000010000000100000001000000010000000100000001000000010000000
+      executionReceiptDigest: sha256:1000000010000000100000001000000010000000100000001000000010000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-001
+      status: succeeded
+      startedAt: 2026-11-11T00:00:00Z
+      finishedAt: 2026-11-11T00:00:00Z

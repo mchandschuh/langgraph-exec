@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import type { CompletionService } from './node.js';
 import type { DebugSink } from 'llm';
+import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { executeNode, parseNodeDefinition } from './node.js';
 import { compileGraphFile, GraphDefinitionError } from './graph.js';
 import type { ComponentPort, GraphComponent, GraphPort, GraphStateField } from './graph.js';
@@ -91,4 +92,77 @@ async function loadBody(path: string, root: string, options: LoopCompileOptions,
 
 function validateLoop(definition: LoopDefinition, body: GraphComponent): void { if (definition.loop.entry !== definition.loop.body) throw new LoopDefinitionError('loop.entry and loop.body must identify the declared body node.'); if (definition.loop.exit === definition.loop.body) throw new LoopDefinitionError('loop.exit must be distinct from loop.body.'); if (!definition.state[definition.loop.counter]) throw new LoopDefinitionError(`Loop counter state '${definition.loop.counter}' is not declared.`); if (!definition.state[definition.loop.condition]) throw new LoopDefinitionError(`Loop condition state '${definition.loop.condition}' is not declared.`); if (definition.state[definition.loop.counter].type !== 'integer') throw new LoopDefinitionError('Loop counter state must be integer.'); if (definition.state[definition.loop.condition].type !== 'boolean') throw new LoopDefinitionError('Loop condition state must be boolean.'); for (const [name, path] of Object.entries(definition.body.inputs)) { if (!body.inputs[name]) throw new LoopDefinitionError(`Loop body input '${name}' is not declared by the component.`); if (!path.startsWith('state.') && !path.startsWith('input.')) throw new LoopDefinitionError(`Loop body input '${name}' must reference state or input.`); } for (const [name, path] of Object.entries(definition.body.outputs)) { if (!body.outputs[name]) throw new LoopDefinitionError(`Loop body output '${name}' is not declared by the component.`); if (!path.startsWith('state.')) throw new LoopDefinitionError(`Loop body output '${name}' must write state.`); const field = path.slice(6); if (!definition.state[field]) throw new LoopDefinitionError(`Loop body output '${name}' writes unknown state '${field}'.`); } }
 
-export async function compileLoopFile(filePath: string, options: LoopCompileOptions = {}, stack: readonly string[] = []): Promise<CompiledLoop> { const absolute = resolve(filePath); const root = resolve(options.rootDir ?? dirname(absolute)); const source = await readFile(absolute, 'utf8'); const registry = options.schemaRegistry ?? await defaultSchemaRegistry(); const definition = parseLoopDefinition(source, absolute, registry); const components: Record<string, GraphComponent> = { ...(options.components ?? {}) }; for (const item of definition.imports) { const child = resolveImport(root, dirname(absolute), item.path); const childSource = await readFile(child, 'utf8'); if (item.sha256 && (await digest(childSource)) !== item.sha256) throw new LoopDefinitionError(`Digest mismatch for import '${item.path}'.`); components[item.alias] = await loadBody(child, root, options, [...stack, absolute], registry); } const body = components[definition.body.component]; if (!body) throw new LoopDefinitionError(`Loop body component '${definition.body.component}' is not resolved.`); validateLoop(definition, body); return { definition, inspect: { schema: definition.schema, kind: definition.kind, name: definition.name, imports: definition.imports, state: definition.state, ports: definition.ports, body: definition.body, loop: definition.loop, resolution: { providerAccess: 'none', bounded: true } }, async invoke(input, debug) { const emit = (event: string, data: Record<string, unknown>) => { if (debug) debug({ event, timestamp: new Date().toISOString(), data }); }; const state: Record<string, unknown> = {}; for (const [name, field] of Object.entries(definition.state)) state[name] = field.default; for (const [name, port] of Object.entries(definition.ports.inputs)) if (own(input as Record<string, unknown>, name)) state[port.state] = input[name]; let iterations = 0; let steps = 0; emit('loop.start', { loop: definition.name, maxIterations: definition.loop.maxIterations, maxSteps: definition.loop.maxSteps, onExhaustion: definition.loop.onExhaustion }); while (true) { if (state[definition.loop.condition] === true) { const result = { status: 'success' as const, output: Object.fromEntries(Object.entries(definition.ports.outputs).map(([name, port]) => [name, state[port.state]])), iterations, steps }; emit('loop.exit', result); return result; } if (iterations >= definition.loop.maxIterations) { const result = { status: 'iteration_exhausted' as const, output: Object.fromEntries(Object.entries(definition.ports.outputs).map(([name, port]) => [name, state[port.state]])), iterations, steps, ...(definition.loop.onExhaustion === 'error' ? { error: 'Loop maximum iterations exhausted.' } : {}) }; emit('loop.exhaustion', result); return result; } if (steps >= definition.loop.maxSteps) { const result = { status: 'step_budget_exhausted' as const, output: Object.fromEntries(Object.entries(definition.ports.outputs).map(([name, port]) => [name, state[port.state]])), iterations, steps, error: 'Graph maximum step budget exhausted.' }; emit('loop.exhaustion', result); return result; } const bodyInput: Record<string, unknown> = {}; for (const [name, path] of Object.entries(definition.body.inputs)) bodyInput[name] = pathValue(state, path); emit('loop.iteration.input', { loop: definition.name, iteration: iterations + 1, step: steps + 1, body: definition.body.component, ports: bodyInput }); try { const result = await body.execute(bodyInput, state, debug); for (const [name, path] of Object.entries(definition.body.outputs)) state[path.slice(6)] = result[name]; emit('loop.iteration.output', { loop: definition.name, iteration: iterations + 1, step: steps + 1, body: definition.body.component, ports: result }); } catch (error) { const result = { status: 'body_error' as const, output: {}, iterations, steps, error: error instanceof Error ? error.message.slice(0, 500) : 'Loop body failed.' }; emit('loop.body_error', result); return result; } iterations += 1; steps += 1; } } }; }
+export async function compileLoopFile(filePath: string, options: LoopCompileOptions = {}, stack: readonly string[] = []): Promise<CompiledLoop> {
+  const absolute = resolve(filePath);
+  const root = resolve(options.rootDir ?? dirname(absolute));
+  const source = await readFile(absolute, 'utf8');
+  const registry = options.schemaRegistry ?? await defaultSchemaRegistry();
+  const definition = parseLoopDefinition(source, absolute, registry);
+  const components: Record<string, GraphComponent> = { ...(options.components ?? {}) };
+  for (const item of definition.imports) {
+    const child = resolveImport(root, dirname(absolute), item.path);
+    const childSource = await readFile(child, 'utf8');
+    if (item.sha256 && (await digest(childSource)) !== item.sha256) throw new LoopDefinitionError(`Digest mismatch for import '${item.path}'.`);
+    components[item.alias] = await loadBody(child, root, options, [...stack, absolute], registry);
+  }
+  const body = components[definition.body.component];
+  if (!body) throw new LoopDefinitionError(`Loop body component '${definition.body.component}' is not resolved.`);
+  validateLoop(definition, body);
+
+  const channels: Record<string, unknown> = {};
+  for (const [name, field] of Object.entries(definition.state)) channels[name] = Annotation({ reducer: (_left: unknown, right: unknown) => right, default: () => field.default });
+  channels.__iterations = Annotation({ reducer: (_left: unknown, right: unknown) => right, default: () => 0 });
+  channels.__steps = Annotation({ reducer: (_left: unknown, right: unknown) => right, default: () => 0 });
+  channels.__bodyError = Annotation({ reducer: (_left: unknown, right: unknown) => right, default: () => undefined });
+  channels.__events = Annotation({ reducer: (left: readonly Record<string, unknown>[], right: readonly Record<string, unknown>[]) => [...left, ...right], default: () => [] });
+  const builder = new StateGraph(Annotation.Root(channels as never) as never) as any;
+  const bodyNode = async (state: Record<string, unknown>) => {
+    if (state.__iterations as number >= definition.loop.maxIterations || state.__steps as number >= definition.loop.maxSteps) return {};
+    const bodyInput: Record<string, unknown> = {};
+    for (const [name, path] of Object.entries(definition.body.inputs)) bodyInput[name] = pathValue(state, path);
+    try {
+      const iteration = Number(state.__iterations ?? 0) + 1;
+      const step = Number(state.__steps ?? 0) + 1;
+      const result = await body.execute(bodyInput, state, options.debug);
+      const update: Record<string, unknown> = { __iterations: iteration, __steps: step, __events: [{ event: 'loop.iteration.input', data: { loop: definition.name, iteration, step, body: definition.body.component, ports: bodyInput } }] };
+      for (const [name, path] of Object.entries(definition.body.outputs)) update[path.slice(6)] = result[name];
+      (update.__events as Record<string, unknown>[]).push({ event: 'loop.iteration.output', data: { loop: definition.name, iteration, step, body: definition.body.component, ports: result } });
+      return update;
+    } catch (error) {
+      const iteration = Number(state.__iterations ?? 0) + 1;
+      const step = Number(state.__steps ?? 0) + 1;
+      const message = error instanceof Error ? error.message.slice(0, 500) : 'Loop body failed.';
+      return { __bodyError: message, __steps: step, __events: [{ event: 'loop.iteration.input', data: { loop: definition.name, iteration, step, body: definition.body.component, ports: bodyInput } }, { event: 'loop.body_error', data: { loop: definition.name, iteration, step, body: definition.body.component, error: message } }] };
+    }
+  };
+  builder.addNode(definition.loop.body, bodyNode);
+  builder.addEdge(START, definition.loop.body);
+  builder.addConditionalEdges(definition.loop.body, (state: Record<string, unknown>) => {
+    if (state.__bodyError) return 'body_error';
+    if (state[definition.loop.condition] === true) return END;
+    if ((state.__iterations as number) >= definition.loop.maxIterations) return END;
+    if ((state.__steps as number) >= definition.loop.maxSteps) return END;
+    return definition.loop.body;
+  }, { [definition.loop.body]: definition.loop.body, body_error: END, [END]: END });
+  const compiled = builder.compile();
+
+  return {
+    definition,
+    inspect: { schema: definition.schema, kind: definition.kind, name: definition.name, imports: definition.imports, state: definition.state, ports: definition.ports, body: definition.body, loop: definition.loop, resolution: { providerAccess: 'none', bounded: true, backend: 'langgraph-stategraph' } },
+    async invoke(input, debug) {
+      const initial: Record<string, unknown> = {};
+      for (const [name, field] of Object.entries(definition.state)) initial[name] = field.default;
+      for (const [name, port] of Object.entries(definition.ports.inputs)) if (own(input as Record<string, unknown>, name)) initial[port.state] = input[name];
+      const state = await compiled.invoke(initial, { recursionLimit: definition.loop.maxSteps + 2 });
+      const iterations = Number(state.__iterations ?? 0);
+      const steps = Number(state.__steps ?? 0);
+      const output = Object.fromEntries(Object.entries(definition.ports.outputs).map(([name, port]) => [name, state[port.state]]));
+      const status: LoopStatus = state.__bodyError ? 'body_error' : state[definition.loop.condition] === true ? 'success' : iterations >= definition.loop.maxIterations ? 'iteration_exhausted' : 'step_budget_exhausted';
+      const result: LoopResult = { status, output, iterations, steps, ...(state.__bodyError ? { error: state.__bodyError as string } : {}), ...(status === 'iteration_exhausted' && definition.loop.onExhaustion === 'error' ? { error: 'Loop maximum iterations exhausted.' } : {}), ...(status === 'step_budget_exhausted' ? { error: 'Graph maximum step budget exhausted.' } : {}) };
+      debug?.({ event: 'loop.start', timestamp: new Date().toISOString(), data: { loop: definition.name, maxIterations: definition.loop.maxIterations, maxSteps: definition.loop.maxSteps, onExhaustion: definition.loop.onExhaustion } });
+      for (const event of (state.__events as Array<{ event: string; data: Record<string, unknown> }> | undefined) ?? []) debug?.({ event: event.event, timestamp: new Date().toISOString(), data: event.data });
+      debug?.({ event: status === 'success' ? 'loop.exit' : status === 'body_error' ? 'loop.body_error' : 'loop.exhaustion', timestamp: new Date().toISOString(), data: result });
+      return result;
+    },
+  };
+}

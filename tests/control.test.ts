@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { controlReturn, executeJoin, executeParallel, joinParallel, mapControl, retryControl, selectControlRoute, timeoutControl, tryControl } from '../src/controls.js';
+import { controlFail, controlReturn, executeJoin, executeParallel, joinParallel, mapControl, retryControl, selectControlRoute, timeoutControl, tryControl } from '../src/controls.js';
 
 test('control.parallel runs bounded branches concurrently and captures outputs', async () => {
   const events: string[] = [];
@@ -70,4 +70,10 @@ test('control.timeout returns timeout and suppresses late output', async () => {
 test('control.return terminates with only declared output ports', () => {
   assert.deepEqual(controlReturn({ result: 'done' }, ['result']), { status: 'returned', output: { result: 'done' } });
   assert.throws(() => controlReturn({ private: true }, ['result']), /not a declared port/);
+});
+
+test('control.fail emits bounded structured failures', () => {
+  const failure = controlFail('EXPECTED_FAILURE', 'bounded message');
+  assert.deepEqual(failure, { status: 'failed', error: { code: 'EXPECTED_FAILURE', message: 'bounded message' } });
+  assert.throws(() => controlFail('bad code', 'message'), /uppercase/);
 });

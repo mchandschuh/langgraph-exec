@@ -144,3 +144,10 @@ export function controlReturn<T extends Record<string, unknown>>(output: T, decl
   emit(debug, 'control.return', { output, ports: declaredPorts });
   return { status: 'returned', output };
 }
+
+export function controlFail(code: string, message: string, debug?: DebugSink): { readonly status: 'failed'; readonly error: { readonly code: string; readonly message: string } } {
+  if (!/^[A-Z][A-Z0-9_]{2,63}$/.test(code)) throw new ControlNodeError('FAIL_CODE_INVALID', 'Failure code must be an uppercase bounded identifier.');
+  const error = { code, message: message.slice(0, 500) };
+  emit(debug, 'control.fail', error);
+  return { status: 'failed', error };
+}

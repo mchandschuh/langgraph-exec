@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { executeJoin, executeParallel, joinParallel } from '../src/controls.js';
+import { executeJoin, executeParallel, joinParallel, selectControlRoute } from '../src/controls.js';
 
 test('control.parallel runs bounded branches concurrently and captures outputs', async () => {
   const events: string[] = [];
@@ -29,4 +29,11 @@ test('control.join requires all declared branches and merges outputs', () => {
 test('control.join applies declared reducers at the barrier', () => {
   const joined = executeJoin({ left: { values: [1], total: 2 }, right: { values: [3], total: 4 } }, { branches: ['left', 'right'], reducers: { values: 'append', total: 'sum' } });
   assert.deepEqual(joined, { status: 'success', value: { values: [1, 3], total: 6 } });
+});
+
+test('control.switch selects declared cases and uses the default route', () => {
+  const contract = { selector: 'state.choice', cases: { yes: 'affirm', no: 'deny' }, default: 'unknown' };
+  assert.equal(selectControlRoute({ state: { choice: 'yes' } }, contract).route, 'affirm');
+  assert.equal(selectControlRoute({ state: { choice: 'maybe' } }, contract).route, 'unknown');
+  assert.throws(() => selectControlRoute({}, { selector: 'state.choice', cases: {}, default: '' }), /default/);
 });

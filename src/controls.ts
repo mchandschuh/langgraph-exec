@@ -86,3 +86,13 @@ export function executeJoin(branches: Readonly<Record<string, unknown>>, contrac
     return { ...(current && typeof current === 'object' ? current : {}), ...(next && typeof next === 'object' ? next : {}) };
   }, debug);
 }
+
+export interface SwitchContract { readonly selector: string; readonly cases: Readonly<Record<string, string>>; readonly default: string }
+export function selectControlRoute(input: Readonly<Record<string, unknown>>, contract: SwitchContract, debug?: DebugSink): { status: 'selected'; route: string; value: unknown } {
+  const parts = contract.selector.split('.'); let value: unknown = input;
+  for (const part of parts) { if (!value || typeof value !== 'object' || !(part in value)) { value = undefined; break; } value = (value as Record<string, unknown>)[part]; }
+  const route = Object.prototype.hasOwnProperty.call(contract.cases, String(value)) ? contract.cases[String(value)] : contract.default;
+  if (!route) throw new ControlNodeError('SWITCH_DEFAULT_MISSING', 'control.switch requires a default route.');
+  emit(debug, 'control.switch.selected', { selector: contract.selector, value, route });
+  return { status: 'selected', route, value };
+}

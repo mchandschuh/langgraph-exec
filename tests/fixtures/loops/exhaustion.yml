@@ -1,0 +1,41 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/loop/v1
+kind: loop
+name: exhaustion
+imports: []
+state:
+  fields:
+    value:
+      type: integer
+      default: 0
+      reducer: replace
+    done:
+      type: boolean
+      default: false
+      reducer: replace
+    iterations:
+      type: integer
+      default: 0
+      reducer: replace
+ports:
+  inputs: {}
+  outputs:
+    value:
+      state: value
+      type: integer
+body:
+  component: fake.never-done
+  inputs:
+    value: state.value
+  outputs:
+    value: state.value
+    done: state.done
+    iterations: state.iterations
+loop:
+  entry: body
+  body: body
+  exit: done
+  condition: done
+  counter: iterations
+  maxIterations: 3
+  maxSteps: 10
+  onExhaustion: error

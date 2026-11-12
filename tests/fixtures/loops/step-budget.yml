@@ -1,0 +1,35 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/loop/v1
+kind: loop
+name: step-budget
+imports: []
+state:
+  fields:
+    done:
+      type: boolean
+      default: false
+      reducer: replace
+    iterations:
+      type: integer
+      default: 0
+      reducer: replace
+ports:
+  inputs: {}
+  outputs:
+    iterations:
+      state: iterations
+      type: integer
+body:
+  component: fake.never-done
+  inputs: {}
+  outputs:
+    done: state.done
+    iterations: state.iterations
+loop:
+  entry: body
+  body: body
+  exit: done
+  condition: done
+  counter: iterations
+  maxIterations: 10
+  maxSteps: 2
+  onExhaustion: return

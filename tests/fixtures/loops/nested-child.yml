@@ -1,0 +1,51 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: loop-nested-child
+imports: []
+state:
+  fields:
+    text:
+      type: string
+      reducer: replace
+    result:
+      type: string
+      reducer: replace
+    done:
+      type: boolean
+      reducer: replace
+    iterations:
+      type: integer
+      reducer: replace
+ports:
+  inputs:
+    text:
+      state: text
+      type: string
+  outputs:
+    value:
+      state: result
+      type: string
+    done:
+      state: done
+      type: boolean
+    iterations:
+      state: iterations
+      type: integer
+nodes:
+  - id: step
+    component: fake.loop-body
+bindings:
+  - from: input.text
+    to: node.step.in
+  - from: node.step.out
+    to: output.value
+  - from: node.step.done
+    to: output.done
+  - from: node.step.iterations
+    to: output.iterations
+edges:
+  - from: __start__
+    to: step
+  - from: step
+    to: __end__
+routes: []

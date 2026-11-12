@@ -29,8 +29,9 @@ execution.
 Phase 1 provides a closed direct `llm.complete` node contract, provider-free
 `validate` and `inspect`, and bounded `run` execution through the injected
 `llm/request/v1` service boundary. Phase 2 adds trusted acyclic graph
-composition and StateGraph lowering. Do not claim bounded loop behavior until
-WI-0003 is complete.
+composition and StateGraph lowering. Phase 3 provides explicit bounded loops
+with graph-owned counters and budgets; do not claim persistence or
+interrupt/resume behavior from the loop capability.
 
 ## Safety boundary
 

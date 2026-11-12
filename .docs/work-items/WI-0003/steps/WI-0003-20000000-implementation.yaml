@@ -4,7 +4,7 @@ taskUid: WI-0003-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0003-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement the phase capability and tests (WI-0003)
 objective: Implement the phase capability and tests for WI-0003.
 references:
@@ -44,7 +44,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -55,7 +55,7 @@ task:
     changeTypes:
       - production-code
       - test-code
-    changeIntent: bugfix
+    changeIntent: feature
     inputs:
       - id: INPUT-PHASE
         kind: constraint
@@ -64,53 +64,82 @@ task:
         required: true
     objectives:
       - id: OBJ-001
-        statement: "Implement the phase capability and tests for WI-0003: Deliver
-          release 0.3.0 with explicit bounded loops, compiler-enforced
-          termination budgets, deterministic loop execution, and loop
-          inspection."
+        statement: "Implement explicit bounded-loop parsing, validation, graph-owned counters and budgets, deterministic execution, loop inspection, tests, and CLI release behavior."
         inputRefs:
           - INPUT-PHASE
         testCaseRefs:
           - "#test-case/TC-001"
+          - "#test-case/TC-002"
+          - "#test-case/TC-003"
+          - "#test-case/TC-004"
+          - "#test-case/TC-005"
+          - "#test-case/TC-006"
     ownedPaths:
       - src/
       - tests/
       - package.json
       - README.md
       - SKILL.md
+      - yarn.lock
       - scripts/
       - bin/
     nonGoals:
       - Do not deploy to production.
     steps:
-      - Implement validation handling.
-      - Run the required test command.
+      - Implement loop contract parsing and fail-closed validation.
+      - Implement bounded counters, maxSteps, exhaustion policies, nested loop bodies, and inspection.
+      - Add deterministic loop fixtures/tests and preserve prior regressions.
+      - Run typecheck, tests, and build.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Implementation is planned and has not been executed in the initial seed
-        commit.
+      summary: "Implemented versioned bounded loops with finite iteration and step budgets, explicit exhaustion policies, nested graph bodies, structured terminal statuses, provider-free inspection, and deterministic tests."
       changes:
         - id: CHANGE-001
           type: production-code
-          summary: Reject malformed events before persistence.
+          summary: "Add loop parsing, import resolution, contract validation, graph-owned counters, maxSteps enforcement, body failure routing, nested bodies, and loop inspection."
           objectiveRefs:
             - OBJ-001
           paths:
-            - src/validation/service.ts
+            - src/loop.ts
+            - src/index.ts
         - id: CHANGE-002
-          type: test-code
-          summary: Add the invalid-event regression test.
+          type: production-code
+          summary: "Extend CLI routing and package metadata for the 0.3.0 loop capability."
           objectiveRefs:
             - OBJ-001
           paths:
-            - test/validation/service.test.ts
+            - src/cli/main.ts
+            - package.json
+        - id: CHANGE-003
+          type: test-code
+          summary: "Add deterministic loop contract, safety, execution, nested-body, failure, and inspection tests."
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - tests/loop.test.ts
+            - tests/fixtures/loops/
       testImplementations:
         - testCaseRef: "#test-case/TC-001"
-          path: test/validation/service.test.ts
-          selector: rejects invalid event before persistence
+          path: tests/loop.test.ts
+          selector: valid loop exits early with deterministic counters
+        - testCaseRef: "#test-case/TC-002"
+          path: tests/loop.test.ts
+          selector: invalid loop contracts fail before execution
+        - testCaseRef: "#test-case/TC-003"
+          path: tests/loop.test.ts
+          selector: loop exhaustion and max-step budgets are distinct bounded outcomes
+        - testCaseRef: "#test-case/TC-004"
+          path: tests/loop.test.ts
+          selector: nested graph loop bodies compose through public ports
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/loop.test.ts
+          selector: loop inspection is provider-free and exposes effective limits
+        - testCaseRef: "#test-case/TC-006"
+          path: tests/loop.test.ts
+          selector: phase-three regression and CLI behavior
     verification:
-      status: not-run
+      status: passed
       objectiveRefs:
         - OBJ-001
       tests:
@@ -118,9 +147,29 @@ task:
           type: unit
           testCaseRefs:
             - "#test-case/TC-001"
-          command: npm test -- --runInBand test/validation/service.test.ts
+            - "#test-case/TC-002"
+            - "#test-case/TC-003"
+            - "#test-case/TC-004"
+            - "#test-case/TC-005"
+            - "#test-case/TC-006"
+          command: yarn test
           status: passed
-          result: The test process exited zero and all assertions passed.
+          result: "20 tests passed, including phase-one, phase-two, and bounded-loop suites without live provider calls."
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-001"
+            - "#test-case/TC-002"
+          command: yarn typecheck
+          status: passed
+          result: TypeScript typecheck exited zero.
+        - id: EXEC-003
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-003"
+            - "#test-case/TC-004"
+          command: yarn build
+          status: passed
+          result: TypeScript build emitted loop-capable output successfully.
     limitations:
-      - No implementation, test, build, provider, or release evidence exists in
-        this planning record.
+      - "Loop evidence uses deterministic fake components and local fixtures; it does not prove live provider availability, checkpointing, interrupt/resume, durable side-effect recovery, or production safety."

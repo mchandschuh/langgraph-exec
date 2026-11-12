@@ -1,0 +1,49 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/loop/v1
+kind: loop
+name: loop-nested-graph
+imports:
+  - path: nested-child.yml
+    alias: child
+state:
+  fields:
+    text:
+      type: string
+      default: nested
+      reducer: replace
+    done:
+      type: boolean
+      default: false
+      reducer: replace
+    iterations:
+      type: integer
+      default: 0
+      reducer: replace
+    result:
+      type: string
+      reducer: replace
+ports:
+  inputs:
+    text:
+      state: text
+      type: string
+  outputs:
+    result:
+      state: result
+      type: string
+body:
+  component: child
+  inputs:
+    text: state.text
+  outputs:
+    value: state.result
+    done: state.done
+    iterations: state.iterations
+loop:
+  entry: body
+  body: body
+  exit: done
+  condition: done
+  counter: iterations
+  maxIterations: 2
+  maxSteps: 4
+  onExhaustion: error

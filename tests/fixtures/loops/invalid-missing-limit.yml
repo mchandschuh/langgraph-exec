@@ -1,0 +1,31 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/loop/v1
+kind: loop
+name: invalid-missing-limit
+imports: []
+state:
+  fields:
+    done:
+      type: boolean
+      default: false
+      reducer: replace
+    iterations:
+      type: integer
+      default: 0
+      reducer: replace
+ports:
+  inputs: {}
+  outputs: {}
+body:
+  component: fake.never-done
+  inputs: {}
+  outputs:
+    done: state.done
+    iterations: state.iterations
+loop:
+  entry: body
+  body: body
+  exit: done
+  condition: done
+  counter: iterations
+  maxSteps: 2
+  onExhaustion: error

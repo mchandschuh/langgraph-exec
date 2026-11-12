@@ -20,7 +20,8 @@ and input bindings, provider-free `validate`/`inspect`, and bounded `run`
 execution through the injected `/home/michael/src/github/llm` service boundary.
 Phase 2 adds trusted imports, closed acyclic graph composition, StateGraph
 lowering, conditional routes, reducers, and nested public-port components.
-Phase 3 adds explicit bounded loops.
+Phase 3 adds explicit bounded loops with compiler-enforced iteration and step
+budgets, deterministic exhaustion statuses, and loop inspection.
 
 ## Planned architecture
 

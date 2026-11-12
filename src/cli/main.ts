@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NodeDefinitionError, executeNode, inspectNode, parseNodeDefinition } from '../node.js';
 import { GraphDefinitionError, compileGraphFile } from '../graph.js';
+import { LoopDefinitionError, compileLoopFile } from '../loop.js';
 
 const packagePath = resolve(dirname(fileURLToPath(import.meta.url)), '../../package.json');
 type PackageMetadata = { readonly name: string; readonly version: string };
@@ -15,9 +16,9 @@ function help(): number {
   console.log(`Usage: langgraph-exec <command> [options]
 
 Commands:
-  validate <component.yml>             Validate a direct node or graph offline.
-  inspect <component.yml> [options]    Inspect a direct node or graph offline.
-  run <component.yml> --input <file>   Execute a direct node or graph.
+  validate <component.yml>             Validate a node, graph, or bounded loop offline.
+  inspect <component.yml> [options]    Inspect a node, graph, or bounded loop offline.
+  run <component.yml> --input <file>   Execute a node, graph, or bounded loop.
 
 Inspect options:
   --resolved                         Include normalized contract details.
@@ -38,11 +39,12 @@ async function loadNode(path: string) {
 
 async function loadComponent(path: string) {
   const source = await readFile(resolve(path), 'utf8');
+  if (source.includes('kind: loop')) return compileLoopFile(path);
   return source.includes('kind: graph') ? compileGraphFile(path) : parseNodeDefinition(source);
 }
 
 function commandError(error: unknown): string {
-  if (error instanceof NodeDefinitionError || error instanceof GraphDefinitionError) return error.message;
+  if (error instanceof NodeDefinitionError || error instanceof GraphDefinitionError || error instanceof LoopDefinitionError) return error.message;
   if (error instanceof Error) return error.message.slice(0, 500);
   return 'The command failed.';
 }
@@ -88,7 +90,9 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
       const component = await loadComponent(args[1]);
       const input = JSON.parse(await readFile(resolve(args[3]), 'utf8')) as Parameters<typeof executeNode>[1];
       const response = 'invoke' in component
-        ? { schema: 'https://schemas.handschuh.dev/langgraph-exec/response/v1', status: 'success', output: await component.invoke(input.input ?? {}), errors: [] }
+        ? ('definition' in component && component.definition.kind === 'loop'
+          ? await component.invoke(input.input ?? {})
+          : { schema: 'https://schemas.handschuh.dev/langgraph-exec/response/v1', status: 'success', output: await component.invoke(input.input ?? {}), errors: [] })
         : await executeNode(component, input);
       console.log(JSON.stringify(response, null, 2));
       return response.status === 'success' ? 0 : 1;

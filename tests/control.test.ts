@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { executeJoin, executeParallel, joinParallel, mapControl, retryControl, selectControlRoute, tryControl } from '../src/controls.js';
+import { executeJoin, executeParallel, joinParallel, mapControl, retryControl, selectControlRoute, timeoutControl, tryControl } from '../src/controls.js';
 
 test('control.parallel runs bounded branches concurrently and captures outputs', async () => {
   const events: string[] = [];
@@ -58,4 +58,11 @@ test('control.retry performs finite retryable attempts and reports exhaustion', 
   assert.equal(calls, 3);
   const exhausted = await retryControl('x', async () => { throw new Error('retryable'); }, 2);
   assert.deepEqual(exhausted, { status: 'exhausted', attempts: 2, error: 'Retry attempt limit exhausted.' });
+});
+
+test('control.timeout returns timeout and suppresses late output', async () => {
+  const timeout = await timeoutControl('x', async (_input, signal) => { await new Promise((resolve) => setTimeout(resolve, 20)); assert.equal(signal.aborted, true); return 'late'; }, 2);
+  assert.deepEqual(timeout, { status: 'timeout' });
+  const success = await timeoutControl('x', async () => 'fast', 50);
+  assert.deepEqual(success, { status: 'success', output: 'fast' });
 });

@@ -121,3 +121,19 @@ export async function retryControl<TInput, TOutput>(input: TInput, execute: (inp
   }
   return { status: 'exhausted', attempts: maxAttempts, error: 'Retry attempt limit exhausted.' };
 }
+
+export async function timeoutControl<TInput, TOutput>(input: TInput, execute: (input: TInput, signal: AbortSignal, debug?: DebugSink) => Promise<TOutput>, timeoutMs: number, debug?: DebugSink): Promise<{ status: 'success' | 'timeout' | 'failure'; output?: TOutput; error?: string }> {
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1) throw new ControlNodeError('TIMEOUT_LIMIT_INVALID', 'timeoutMs must be a positive integer.');
+  const controller = new AbortController();
+  let timer: NodeJS.Timeout | undefined;
+  emit(debug, 'control.timeout.start', { timeoutMs });
+  try {
+    const result = await Promise.race([
+      execute(input, controller.signal, debug).then((output) => ({ status: 'success' as const, output })),
+      new Promise<{ status: 'timeout' }>((resolve) => { timer = setTimeout(() => { controller.abort(); resolve({ status: 'timeout' }); }, timeoutMs); }),
+    ]);
+    emit(debug, `control.timeout.${result.status}`, result);
+    return result;
+  } catch (error) { const result = { status: 'failure' as const, error: error instanceof Error ? error.message.slice(0, 500) : 'Timed component failed.' }; emit(debug, 'control.timeout.failure', result); return result; }
+  finally { if (timer) clearTimeout(timer); }
+}

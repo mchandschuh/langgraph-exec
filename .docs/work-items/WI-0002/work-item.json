@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0002",
-  "status": "planned",
+  "status": "active",
   "title": "Implement composable acyclic YAML graphs and nested components",
   "type": "feature",
   "objective": "Deliver release 0.2.0 with YAML-defined acyclic graphs that compose registered nodes and nested graphs through explicit state and port contracts.",

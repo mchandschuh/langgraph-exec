@@ -4,7 +4,7 @@ taskUid: WI-0002-00000000
 orderKey: "00000000"
 parentTaskUid: null
 taskType: design
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the phase architecture and contracts (WI-0002)
 objective: Define the phase architecture and contracts for WI-0002.
 references:
@@ -37,7 +37,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
@@ -57,9 +57,24 @@ task:
       - Implementation evidence
       - live provider evidence
       - production deployment
-    references: []
+    references:
+      - id: REF-001
+        type: document
+        locator: README.md
+        description: "Repository phase architecture and release boundaries."
+      - id: REF-002
+        type: repositoryPath
+        locator: package.json
+        description: "Package scripts, exports, and dependency boundary."
+      - id: REF-003
+        type: document
+        locator: SKILL.md
+        description: "Runtime safety and local release workflow guidance."
     provenance:
-      referenceRefs: []
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
       basis: This is an initial planning record derived from the phase scope and
         repository proposal.
       confidence: 90
@@ -74,18 +89,320 @@ task:
       - structure
       - contract
   result:
-    summary: Planned design result; no design execution has been performed.
+    summary: "Defined the closed graph artifact, trusted import resolver, explicit state/port contract, DAG topology rules, nested public-port boundary, and StateGraph lowering adapter for WI-0002."
     model:
       name: wi-0002
       kind: architecture
       description: "Define the phase architecture and contracts for WI-0002: Deliver
         release 0.2.0 with YAML-defined acyclic graphs that compose registered
         nodes and nested graphs through explicit state and port contracts."
-    elements: []
-    relations: []
-    views: []
-    artifacts: []
-    outcomes: []
+    elements:
+      - id: E-001
+        type: resolver
+        name: trusted-component-resolver
+        description: "Loads relative YAML components below a trusted root, verifies optional digests, assigns aliases, and rejects traversal, missing imports, duplicate aliases, and recursive import cycles."
+        provenance:
+          referenceRefs: []
+          basis: "Composition requires deterministic fail-closed component loading before compilation."
+          confidence: 96
+      - id: E-002
+        type: contract
+        name: graph-artifact
+        description: "A closed versioned graph YAML artifact declares imports, state fields, public ports, node instances, bindings, edges, conditional routes, and reducers."
+        provenance:
+          referenceRefs: []
+          basis: "The graph contract is the minimum explicit topology and state boundary for phase two."
+          confidence: 96
+      - id: E-003
+        type: state-model
+        name: graph-state
+        description: "A graph-owned state model validates declared paths, public input/output mappings, node writes, and reducer behavior for parallel updates."
+        provenance:
+          referenceRefs: []
+          basis: "Explicit graph state prevents undeclared writes and makes reducer conflicts deterministic."
+          confidence: 95
+      - id: E-004
+        type: validator
+        name: dag-topology-validator
+        description: "Validates node identifiers, bindings, reachability, START/END connectivity, conditional route cases, and acyclicity before backend lowering."
+        provenance:
+          referenceRefs: []
+          basis: "Phase two accepts fixed and conditional DAGs but rejects arbitrary cycles and loop semantics."
+          confidence: 98
+      - id: E-005
+        type: backend
+        name: stategraph-lowering
+        description: "Lowers normalized graph IR into LangGraph StateGraph nodes, START/END edges, conditional edges, and reducer-aware state channels."
+        provenance:
+          referenceRefs: []
+          basis: "LangGraph StateGraph is the declared execution backend for phase-two composition."
+          confidence: 92
+      - id: E-006
+        type: boundary
+        name: nested-public-ports
+        description: "Treats a nested graph as a component whose private state stays internal and whose parent interaction is limited to declared input/output ports."
+        provenance:
+          referenceRefs: []
+          basis: "Nested composition requires explicit public-port mapping and bounded failure propagation."
+          confidence: 96
+    relations:
+      - id: REL-001
+        type: resolves
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-002
+        description: "The trusted resolver produces the graph artifact and its imported component set."
+        provenance:
+          referenceRefs: []
+          basis: "Compilation begins only after deterministic import resolution."
+          confidence: 96
+      - id: REL-002
+        type: validates
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-003
+        description: "The graph contract defines the state fields, ports, bindings, and reducers validated by the state model."
+        provenance:
+          referenceRefs: []
+          basis: "State declarations are part of the closed graph artifact."
+          confidence: 95
+      - id: REL-003
+        type: validates
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-004
+        description: "The graph topology is checked for reachability, routes, and acyclicity before lowering."
+        provenance:
+          referenceRefs: []
+          basis: "The backend receives only a validated DAG IR."
+          confidence: 98
+      - id: REL-004
+        type: lowers-to
+        source:
+          type: element
+          id: E-004
+        target:
+          type: element
+          id: E-005
+        description: "A validated normalized DAG is lowered into StateGraph."
+        provenance:
+          referenceRefs: []
+          basis: "Lowering is separated from YAML parsing and validation."
+          confidence: 95
+      - id: REL-005
+        type: composes
+        source:
+          type: element
+          id: E-006
+        target:
+          type: element
+          id: E-002
+        description: "A graph may use another graph through its public ports without exposing child private state."
+        provenance:
+          referenceRefs: []
+          basis: "Nested graphs are registered components with an explicit parent-child port boundary."
+          confidence: 96
+    views:
+      - id: V-001
+        type: graph-compilation-flow
+        name: graph-compilation-flow
+        description: "Shows trusted import resolution, closed graph validation, DAG validation, nested-port adaptation, and StateGraph lowering."
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+          - E-005
+          - E-006
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+          - REL-004
+          - REL-005
+        provenance:
+          referenceRefs: []
+          basis: "The view makes the phase-two compile boundary and nested composition flow explicit."
+          confidence: 95
+    artifacts:
+      - id: A-001
+        type: schema
+        name: graph-contract-schema
+        description: "Versioned closed graph YAML contract and normalized graph IR types."
+        locator: src/graph.ts
+        format: typescript
+        status: proposed
+        provenance:
+          referenceRefs: []
+          basis: "The implementation artifact will own parsing, validation, and normalized graph types."
+          confidence: 94
+        elementRefs:
+          - E-002
+          - E-003
+      - id: A-002
+        type: interfaceDefinition
+        name: component-resolver
+        description: "Trusted-root resolver for relative imports, aliases, digests, and cycles."
+        locator: src/components.ts
+        format: typescript
+        status: proposed
+        provenance:
+          referenceRefs: []
+          basis: "The implementation artifact will isolate file resolution from graph compilation."
+          confidence: 94
+        elementRefs:
+          - E-001
+      - id: A-003
+        type: interfaceDefinition
+        name: stategraph-backend
+        description: "StateGraph lowering and execution adapter with injectable registered component implementations."
+        locator: src/graph-backend.ts
+        format: typescript
+        status: proposed
+        provenance:
+          referenceRefs: []
+          basis: "The backend artifact will isolate LangGraph API usage from the graph IR."
+          confidence: 90
+        elementRefs:
+          - E-004
+          - E-005
+          - E-006
+    outcomes:
+      - id: O-001
+        type: implementationHandoff
+        statement: "Implement graph loading and normalization as a trusted-root, closed, versioned boundary before any backend execution."
+        status: accepted
+        impact: 96
+        confidence: 96
+        referenceRefs: []
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+        artifactRefs:
+          - A-001
+          - A-002
+      - id: O-002
+        type: implementationHandoff
+        statement: "Reject arbitrary cycles, undeclared state access, reducer conflicts, invalid routes, and private nested-state leakage before StateGraph compilation."
+        status: accepted
+        impact: 98
+        confidence: 97
+        referenceRefs: []
+        elementRefs:
+          - E-003
+          - E-004
+          - E-006
+        artifactRefs:
+          - A-003
+      - id: O-003
+        type: testHandoff
+        statement: "Use injectable fake components and a deterministic StateGraph-compatible backend seam so graph tests do not require live providers."
+        status: accepted
+        impact: 94
+        confidence: 94
+        referenceRefs: []
+        elementRefs:
+          - E-005
+        artifactRefs:
+          - A-003
     unresolvedQuestions: []
-    outputs: []
-    verificationObligations: []
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: complete
+        sourceRefs:
+          - REF-001
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+        description: "Closed graph artifact, trusted import, state, port, binding, edge, route, and reducer contract."
+      - id: OUT-002
+        category: architecture-structure
+        status: complete
+        sourceRefs:
+          - REF-002
+        elementRefs:
+          - E-004
+          - E-005
+        relationRefs:
+          - REL-003
+          - REL-004
+        description: "DAG validation and LangGraph StateGraph lowering boundary."
+      - id: OUT-003
+        category: implementation-handoff
+        status: complete
+        sourceRefs:
+          - REF-003
+        elementRefs:
+          - E-006
+        artifactRefs:
+          - A-003
+        description: "Nested graph public-port composition and failure propagation boundary."
+    verificationObligations:
+      - id: VER-001
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+        testCaseRefs: []
+        method:
+          type: unit-test
+          steps:
+            - "Run resolver and graph-contract tests for valid, invalid, traversal, digest, alias, and cycle fixtures."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Verify trusted imports and closed graph/state contracts before compilation."
+      - id: VER-002
+        kind: contract-test
+        status: planned
+        sourceRefs:
+          - REF-002
+        testCaseRefs: []
+        method:
+          type: contract-test
+          steps:
+            - "Compile fixed and conditional DAGs through the StateGraph adapter using fake registered components."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Verify DAG lowering, START/END, conditional routes, reducers, and deterministic execution."
+      - id: VER-003
+        kind: component-test
+        status: planned
+        sourceRefs:
+          - REF-003
+        testCaseRefs: []
+        method:
+          type: component-test
+          steps:
+            - "Compile a nested graph through public ports and assert private child state does not escape."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Verify nested graph mapping and bounded failure propagation."
+      - id: VER-004
+        kind: build
+        status: planned
+        sourceRefs:
+          - REF-002
+        testCaseRefs: []
+        method:
+          type: build
+          steps:
+            - "Run typecheck, regression tests, graph tests, build, link, and graph CLI inspection smoke checks."
+          command: yarn typecheck && yarn test && yarn build
+        requiredFor:
+          - implementable
+        description: "Run the phase-two local release gate."

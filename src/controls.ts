@@ -111,3 +111,13 @@ export async function tryControl<TInput, TOutput>(input: TInput, execute: (input
   try { const output = await execute(input, debug); emit(debug, 'control.try.success', { output }); return { status: 'success', output }; }
   catch (error) { const message = error instanceof Error ? error.message.slice(0, 500) : 'Control try body failed.'; emit(debug, 'control.try.failure', { error: message }); return { status: 'failure', error: message }; }
 }
+
+export async function retryControl<TInput, TOutput>(input: TInput, execute: (input: TInput, attempt: number, debug?: DebugSink) => Promise<TOutput>, maxAttempts: number, retryable: (error: unknown) => boolean = () => true, debug?: DebugSink): Promise<{ status: 'success' | 'exhausted' | 'failure'; output?: TOutput; attempts: number; error?: string }> {
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) throw new ControlNodeError('RETRY_LIMIT_INVALID', 'maxAttempts must be a positive integer.');
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    emit(debug, 'control.retry.attempt', { attempt, maxAttempts });
+    try { const output = await execute(input, attempt, debug); emit(debug, 'control.retry.success', { attempt }); return { status: 'success', output, attempts: attempt }; }
+    catch (error) { const message = error instanceof Error ? error.message.slice(0, 500) : 'Retry body failed.'; emit(debug, 'control.retry.failure', { attempt, error: message }); if (!retryable(error)) return { status: 'failure', attempts: attempt, error: message }; if (attempt === maxAttempts) return { status: 'exhausted', attempts: attempt, error: 'Retry attempt limit exhausted.' }; }
+  }
+  return { status: 'exhausted', attempts: maxAttempts, error: 'Retry attempt limit exhausted.' };
+}

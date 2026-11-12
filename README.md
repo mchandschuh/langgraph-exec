@@ -18,7 +18,9 @@ The repository is delivered in three independently releasable phases:
 Phase 1 implements a closed direct `llm.complete` node contract, typed parameter
 and input bindings, provider-free `validate`/`inspect`, and bounded `run`
 execution through the injected `/home/michael/src/github/llm` service boundary.
-The remaining phases add graph composition and explicit loops.
+Phase 2 adds trusted imports, closed acyclic graph composition, StateGraph
+lowering, conditional routes, reducers, and nested public-port components.
+Phase 3 adds explicit bounded loops.
 
 ## Planned architecture
 
@@ -27,7 +29,7 @@ YAML component
   -> schema validation
   -> normalized component IR
   -> trusted node registry
-  -> LangGraph backend
+  -> LangGraph StateGraph backend
   -> injected services, including /home/michael/src/github/llm
 ```
 

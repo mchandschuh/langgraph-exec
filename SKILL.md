@@ -28,8 +28,9 @@ execution.
 
 Phase 1 provides a closed direct `llm.complete` node contract, provider-free
 `validate` and `inspect`, and bounded `run` execution through the injected
-`llm/request/v1` service boundary. Do not claim graph or loop behavior until
-the later work-item phases are complete.
+`llm/request/v1` service boundary. Phase 2 adds trusted acyclic graph
+composition and StateGraph lowering. Do not claim bounded loop behavior until
+WI-0003 is complete.
 
 ## Safety boundary
 

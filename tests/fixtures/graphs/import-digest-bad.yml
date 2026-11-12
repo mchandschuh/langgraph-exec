@@ -1,0 +1,28 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: import-digest-bad
+imports:
+  - path: imported-node.yml
+    alias: imported
+    sha256: 0000000000000000000000000000000000000000000000000000000000000000
+state:
+  fields:
+    result:
+      type: object
+      reducer: replace
+ports:
+  inputs: {}
+  outputs:
+    result:
+      state: result
+      type: object
+nodes:
+  - id: call
+    component: imported
+bindings: []
+edges:
+  - from: __start__
+    to: call
+  - from: call
+    to: __end__
+routes: []

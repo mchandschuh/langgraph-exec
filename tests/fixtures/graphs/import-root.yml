@@ -1,0 +1,39 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: import-root
+imports:
+  - path: imported-node.yml
+    alias: imported
+state:
+  fields:
+    task:
+      type: string
+      reducer: replace
+    result:
+      type: object
+      reducer: replace
+ports:
+  inputs:
+    task:
+      state: task
+      type: string
+      required: true
+  outputs:
+    result:
+      state: result
+      type: object
+      required: true
+nodes:
+  - id: call
+    component: imported
+bindings:
+  - from: input.task
+    to: node.call.task
+  - from: node.call.response
+    to: output.result
+edges:
+  - from: __start__
+    to: call
+  - from: call
+    to: __end__
+routes: []

@@ -1,0 +1,27 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: import-cycle-b
+imports:
+  - path: import-cycle-a.yml
+    alias: a
+state:
+  fields:
+    result:
+      type: string
+      reducer: replace
+ports:
+  inputs: {}
+  outputs:
+    result:
+      state: result
+      type: string
+nodes:
+  - id: child
+    component: a
+bindings: []
+edges:
+  - from: __start__
+    to: child
+  - from: child
+    to: __end__
+routes: []

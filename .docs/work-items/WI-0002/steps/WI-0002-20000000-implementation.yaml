@@ -4,7 +4,7 @@ taskUid: WI-0002-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0002-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement the phase capability and tests (WI-0002)
 objective: Implement the phase capability and tests for WI-0002.
 references:
@@ -44,7 +44,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -55,7 +55,7 @@ task:
     changeTypes:
       - production-code
       - test-code
-    changeIntent: bugfix
+    changeIntent: feature
     inputs:
       - id: INPUT-PHASE
         kind: constraint
@@ -64,52 +64,80 @@ task:
         required: true
     objectives:
       - id: OBJ-001
-        statement: "Implement the phase capability and tests for WI-0002: Deliver
-          release 0.2.0 with YAML-defined acyclic graphs that compose registered
-          nodes and nested graphs through explicit state and port contracts."
+        statement: "Implement trusted graph resolution, graph IR validation, StateGraph lowering, nested public ports, tests, and CLI graph inspection for WI-0002."
         inputRefs:
           - INPUT-PHASE
         testCaseRefs:
           - "#test-case/TC-001"
+          - "#test-case/TC-002"
+          - "#test-case/TC-003"
+          - "#test-case/TC-004"
+          - "#test-case/TC-005"
     ownedPaths:
       - src/
       - tests/
       - package.json
       - README.md
       - SKILL.md
+      - yarn.lock
       - scripts/
       - bin/
     nonGoals:
       - Do not deploy to production.
     steps:
-      - Implement validation handling.
-      - Run the required test command.
+      - Implement trusted component resolution and graph normalization.
+      - Implement StateGraph lowering, nested composition, and graph CLI handling.
+      - Add deterministic graph fixtures and tests.
+      - Run typecheck, tests, and build.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Implementation is planned and has not been executed in the initial seed
-        commit.
+      summary: "Implemented trusted graph imports, closed graph IR validation, DAG/reducer checks, StateGraph lowering, nested public-port composition, graph CLI validation/inspection, and deterministic phase-two tests."
       changes:
         - id: CHANGE-001
           type: production-code
-          summary: Reject malformed events before persistence.
+          summary: "Add graph parsing, trusted import resolution, graph contract validation, DAG checks, reducers, and nested compilation."
           objectiveRefs:
             - OBJ-001
           paths:
-            - src/validation/service.ts
+            - src/graph.ts
+            - src/graph-backend.ts
+            - src/index.ts
         - id: CHANGE-002
-          type: test-code
-          summary: Add the invalid-event regression test.
+          type: production-code
+          summary: "Extend CLI commands and package metadata for graph validation, inspection, and release 0.2.0."
           objectiveRefs:
             - OBJ-001
           paths:
-            - test/validation/service.test.ts
+            - src/cli/main.ts
+            - package.json
+            - yarn.lock
+        - id: CHANGE-003
+          type: test-code
+          summary: "Add deterministic import, contract, DAG, conditional-route, nested-graph, and CLI graph tests."
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - tests/graph.test.ts
+            - tests/fixtures/graphs/
       testImplementations:
         - testCaseRef: "#test-case/TC-001"
-          path: test/validation/service.test.ts
-          selector: rejects invalid event before persistence
+          path: tests/graph.test.ts
+          selector: trusted imports resolve and unsafe imports fail closed
+        - testCaseRef: "#test-case/TC-002"
+          path: tests/graph.test.ts
+          selector: graph contract rejects unknown state and supports fixed DAG execution
+        - testCaseRef: "#test-case/TC-003"
+          path: tests/graph.test.ts
+          selector: conditional routes select a deterministic branch and cycles fail closed
+        - testCaseRef: "#test-case/TC-004"
+          path: tests/graph.test.ts
+          selector: nested graphs expose public ports and keep private state internal
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/graph.test.ts
+          selector: CLI validates and inspects an imported graph without provider access
     verification:
-      status: not-run
+      status: passed
       objectiveRefs:
         - OBJ-001
       tests:
@@ -117,9 +145,28 @@ task:
           type: unit
           testCaseRefs:
             - "#test-case/TC-001"
-          command: npm test -- --runInBand test/validation/service.test.ts
+            - "#test-case/TC-002"
+            - "#test-case/TC-003"
+            - "#test-case/TC-004"
+            - "#test-case/TC-005"
+          command: yarn test
           status: passed
-          result: The test process exited zero and all assertions passed.
+          result: "14 tests passed, including all 10 phase-one regression/CLI tests and 4 graph-specific suites, without live provider calls."
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-001"
+            - "#test-case/TC-002"
+          command: yarn typecheck
+          status: passed
+          result: TypeScript typecheck exited zero.
+        - id: EXEC-003
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-003"
+            - "#test-case/TC-004"
+          command: yarn build
+          status: passed
+          result: TypeScript build emitted graph and backend output successfully.
     limitations:
-      - No implementation, test, build, provider, or release evidence exists in
-        this planning record.
+      - "The graph tests use fake components and local fixtures; they do not prove live provider availability, deployment readiness, checkpointing, interrupt/resume, or production safety."

@@ -1,0 +1,40 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: nested-child
+imports: []
+state:
+  fields:
+    text:
+      type: string
+      reducer: replace
+    value:
+      type: string
+      reducer: replace
+    private:
+      type: string
+      reducer: replace
+ports:
+  inputs:
+    text:
+      state: text
+      type: string
+      required: true
+  outputs:
+    value:
+      state: value
+      type: string
+      required: true
+nodes:
+  - id: inner
+    component: fake.upper
+bindings:
+  - from: input.text
+    to: node.inner.in
+  - from: node.inner.out
+    to: output.value
+edges:
+  - from: __start__
+    to: inner
+  - from: inner
+    to: __end__
+routes: []

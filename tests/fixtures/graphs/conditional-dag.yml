@@ -1,0 +1,56 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: conditional-dag
+imports: []
+state:
+  fields:
+    choice:
+      type: string
+      reducer: replace
+    route:
+      type: string
+      reducer: replace
+    result:
+      type: string
+      reducer: replace
+ports:
+  inputs:
+    choice:
+      state: choice
+      type: string
+      required: true
+  outputs:
+    result:
+      state: result
+      type: string
+      required: true
+nodes:
+  - id: choose
+    component: fake.choose
+  - id: yes
+    component: fake.yes
+  - id: no
+    component: fake.no
+bindings:
+  - from: input.choice
+    to: node.choose.in
+  - from: node.choose.route
+    to: state.route
+  - from: node.yes.out
+    to: output.result
+  - from: node.no.out
+    to: output.result
+edges:
+  - from: __start__
+    to: choose
+  - from: yes
+    to: __end__
+  - from: no
+    to: __end__
+routes:
+  - from: choose
+    selector: state.route
+    cases:
+      yes: yes
+      no: no
+    default: no

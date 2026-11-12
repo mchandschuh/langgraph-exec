@@ -1,0 +1,31 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: cyclic-dag
+imports: []
+state:
+  fields:
+    result:
+      type: string
+      reducer: replace
+ports:
+  inputs: {}
+  outputs:
+    result:
+      state: result
+      type: string
+nodes:
+  - id: first
+    component: fake.first
+  - id: second
+    component: fake.second
+bindings: []
+edges:
+  - from: __start__
+    to: first
+  - from: first
+    to: second
+  - from: second
+    to: first
+  - from: second
+    to: __end__
+routes: []

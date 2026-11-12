@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { executeJoin, executeParallel, joinParallel, mapControl, retryControl, selectControlRoute, timeoutControl, tryControl } from '../src/controls.js';
+import { controlReturn, executeJoin, executeParallel, joinParallel, mapControl, retryControl, selectControlRoute, timeoutControl, tryControl } from '../src/controls.js';
 
 test('control.parallel runs bounded branches concurrently and captures outputs', async () => {
   const events: string[] = [];
@@ -65,4 +65,9 @@ test('control.timeout returns timeout and suppresses late output', async () => {
   assert.deepEqual(timeout, { status: 'timeout' });
   const success = await timeoutControl('x', async () => 'fast', 50);
   assert.deepEqual(success, { status: 'success', output: 'fast' });
+});
+
+test('control.return terminates with only declared output ports', () => {
+  assert.deepEqual(controlReturn({ result: 'done' }, ['result']), { status: 'returned', output: { result: 'done' } });
+  assert.throws(() => controlReturn({ private: true }, ['result']), /not a declared port/);
 });

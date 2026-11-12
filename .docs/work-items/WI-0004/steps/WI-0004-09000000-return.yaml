@@ -1,0 +1,114 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-09000000
+orderKey: "09000000"
+parentTaskUid: null
+taskType: implementation
+processingStatus: processing_completed
+title: Implement control.return control node (WI-0004)
+objective: Implement control.return as an explicit registered control node.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0004-09000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/return.ts
+    - src/graph.ts
+    - tests/return.test.ts
+    - .docs/work-items/WI-0004/
+  commitSubject: "WI-0004: 11: return control node"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: "Add explicit branch/graph termination with declared output ports."
+    changeTypes:
+      - production-code
+      - test-code
+    changeIntent: feature
+    inputs:
+      - id: INPUT-CONTRACT
+        kind: constraint
+        ref: "#constraint/CONTROL-NODE-CONTRACT"
+        purpose: The WI-0004 control-node scope and acceptance contract.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: "Implement control.return with closed validation, deterministic behavior, tests, CLI inspection, and no live-provider dependency."
+        inputRefs:
+          - INPUT-CONTRACT
+        testCaseRefs:
+          - "#test-case/TC-001"
+    ownedPaths:
+      - src/return.ts
+      - src/graph.ts
+      - tests/return.test.ts
+    nonGoals:
+      - Do not deploy to production.
+      - Do not implement checkpointing or interrupt/resume.
+    steps:
+      - Define the control.return contract and validator.
+      - Implement deterministic runtime behavior and CLI inspection.
+      - Add focused tests and preserve earlier regression tests.
+      - Run typecheck, tests, build, and release checks.
+  result:
+    status: implemented
+    implementation:
+      summary: "Implemented control.return explicit terminal output with declared-port enforcement and debug emission."
+      changes:
+        - id: CHANGE-001
+          type: production-code
+          summary: "Implement control.return declared-output termination semantics."
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - src/
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: tests/control.test.ts
+          selector: control.return terminates with only declared output ports
+    verification:
+      status: passed
+      objectiveRefs:
+        - OBJ-001
+      tests:
+        - id: EXEC-001
+          type: unit
+          testCaseRefs:
+            - "#test-case/TC-001"
+          command: yarn test
+          status: passed
+          result: "35 tests passed, including control.return and prior control/runtime regressions."
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-001"
+          command: yarn typecheck && yarn build
+          status: passed
+          result: Typecheck and build exited zero.
+    limitations:
+      - "One final control-node implementation step remains in WI-0004."

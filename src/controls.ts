@@ -137,3 +137,10 @@ export async function timeoutControl<TInput, TOutput>(input: TInput, execute: (i
   } catch (error) { const result = { status: 'failure' as const, error: error instanceof Error ? error.message.slice(0, 500) : 'Timed component failed.' }; emit(debug, 'control.timeout.failure', result); return result; }
   finally { if (timer) clearTimeout(timer); }
 }
+
+export function controlReturn<T extends Record<string, unknown>>(output: T, declaredPorts: readonly string[], debug?: DebugSink): { readonly status: 'returned'; readonly output: T } {
+  const allowed = new Set(declaredPorts);
+  for (const key of Object.keys(output)) if (!allowed.has(key)) throw new ControlNodeError('RETURN_PORT_INVALID', `Return output '${key}' is not a declared port.`);
+  emit(debug, 'control.return', { output, ports: declaredPorts });
+  return { status: 'returned', output };
+}

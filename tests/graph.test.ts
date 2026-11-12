@@ -96,3 +96,17 @@ test('compiled graphs expose LangGraph stream updates and preserve actual node e
   assert.equal(firstInput?.data?.ports && (firstInput.data.ports as Record<string, unknown>).in, 'actual values');
   assert.equal(secondInput?.data?.ports && (secondInput.data.ports as Record<string, unknown>).in, 'actual values-first');
 });
+
+test('graph node retryPolicy is executed by LangGraph for operational failures', async () => {
+  let attempts = 0;
+  const flaky = component('fake.flaky', async (input) => {
+    attempts += 1;
+    if (attempts < 2) throw new Error('transient failure');
+    return { out: `${String(input.in)}-recovered` };
+  });
+  const graph = await compileGraphFile(graphFixture('fixed-dag.yml'), {
+    components: { ...fakeComponents, 'fake.first': flaky },
+  });
+  assert.deepEqual(await graph.invoke({ message: 'retry' }), { result: 'retry-recovered-second' });
+  assert.equal(attempts, 2);
+});

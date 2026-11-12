@@ -1,0 +1,55 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/node/v1
+kind: node
+name: v2-completion
+implementation: llm.complete
+parameters:
+  provider:
+    type: string
+    default: openrouter
+  model:
+    type: string
+    default: openai/gpt-5.6-luna
+  thinking:
+    type: string
+    default: high
+  maxFailedAttempts:
+    type: integer
+    default: 0
+  maxIterations:
+    type: integer
+    default: 1
+  requestSchema:
+    type: string
+    default: https://schemas.handschuh.dev/llm/request/v2
+  responseSchema:
+    type: string
+    default: https://schemas.handschuh.dev/llm/response/v2
+  systemPrompt:
+    type: string
+    default: Return a tool-capable response.
+ports:
+  inputs:
+    task:
+      type: object
+      required: true
+  outputs:
+    response:
+      type: object
+      required: true
+bindings:
+  provider: parameter.provider
+  model: parameter.model
+  thinking: parameter.thinking
+  maxFailedAttempts: parameter.maxFailedAttempts
+  maxIterations: parameter.maxIterations
+  task: input.task
+  systemPrompt: parameter.systemPrompt
+contracts:
+  input:
+    oneOf:
+      - $ref: https://schemas.handschuh.dev/llm/request/v1
+      - $ref: https://schemas.handschuh.dev/llm/request/v2
+  output:
+    oneOf:
+      - $ref: https://schemas.handschuh.dev/llm/response/v1
+      - $ref: https://schemas.handschuh.dev/llm/response/v2

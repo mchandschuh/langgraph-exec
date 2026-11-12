@@ -26,7 +26,7 @@ const fakeComponents = {
 const completionService = async (request: LlmRequest): Promise<LlmResponse> => ({
   schema: 'https://schemas.handschuh.dev/llm/response/v1',
   status: 'success',
-  output: { $type: 'object', schema: null, value: { task: request.task } },
+  output: { $type: 'object', schema: { name: 'https://schemas.handschuh.dev/example/graph-output/v1' }, value: { task: request.task } },
   failedAttempts: 0,
   iterations: 1,
   errors: [],

@@ -14,6 +14,9 @@ export {
 } from './node.js';
 export { compileGraphFile, componentRegistry, GRAPH_SCHEMA, GraphDefinitionError, parseGraphDefinition } from './graph.js';
 export { compileLoopFile, CONTROL_LOOP_SCHEMA, LOOP_SCHEMA, LoopDefinitionError, parseLoopDefinition } from './loop.js';
+export { DocumentParseError, parseStructuredDocument, readStructuredDocument } from './document.js';
+export { SchemaRegistry, SchemaRegistryError, defaultSchemaRegistry, resetDefaultSchemaRegistry } from './schema-registry.js';
+export type { JsonSchema, RegisteredSchema, SchemaExpression, SchemaRegistryOptions, SchemaValidationIssue } from './schema-registry.js';
 export type {
   CompletionService,
   NodeDefinition,

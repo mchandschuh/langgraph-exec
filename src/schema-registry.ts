@@ -2,12 +2,10 @@ import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { createRequire } from 'node:module';
 import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.js';
 import addFormatsModule from 'ajv-formats';
 
 const addFormats = addFormatsModule as unknown as (ajv: Ajv2020) => Ajv2020;
-const require = createRequire(import.meta.url);
 
 export type JsonSchema = Record<string, unknown>;
 export type SchemaExpression = string | JsonSchema;
@@ -43,10 +41,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function defaultDirectories(): string[] {
-  const llmEntry = require.resolve('llm');
   return [
     resolve(new URL('../schemas', import.meta.url).pathname),
-    resolve(dirname(llmEntry), '../schemas'),
+    resolve(new URL('../node_modules/llm/schemas', import.meta.url).pathname),
   ];
 }
 
@@ -126,6 +123,17 @@ export class SchemaRegistry {
     this.schemas.set(id, { id, path: filePath, schema });
   }
 
+  addSchema(schema: JsonSchema, path = '<inline>'): void {
+    if (typeof schema.$id !== 'string' || schema.$id.length === 0) throw new SchemaRegistryError(`Schema '${path}' must declare a non-empty $id.`);
+    if (this.schemas.has(schema.$id)) throw new SchemaRegistryError(`Duplicate schema id '${schema.$id}' in '${path}'.`);
+    try {
+      this.ajv.addSchema(schema, schema.$id);
+    } catch (error) {
+      throw new SchemaRegistryError(`Schema '${schema.$id}' could not be compiled: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+    this.schemas.set(schema.$id, { id: schema.$id, path, schema });
+  }
+
   list(): readonly RegisteredSchema[] {
     return [...this.schemas.values()].sort((left, right) => left.id.localeCompare(right.id));
   }
@@ -144,6 +152,14 @@ export class SchemaRegistry {
     if (issues.length > 0) {
       const detail = issues.map((issue) => `${issue.instancePath || '/'} ${issue.message}`).join('; ');
       throw new SchemaRegistryError(`${path} does not satisfy its schema: ${detail}`);
+    }
+  }
+
+  assertSchema(expression: SchemaExpression, path: string): void {
+    try {
+      this.validator(expression);
+    } catch (error) {
+      throw new SchemaRegistryError(`${path} is not a valid registered schema expression: ${error instanceof Error ? error.message : 'unknown error'}`);
     }
   }
 

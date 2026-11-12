@@ -11,4 +11,19 @@ ports:
       type: object
 bindings:
   task: input.task
+  requestSchema:
+    type: string
+    default: https://schemas.handschuh.dev/llm/request/v1
+  responseSchema:
+    type: string
+    default: https://schemas.handschuh.dev/llm/response/v1
   systemPrompt: input.systemPrompt
+contracts:
+  input:
+    oneOf:
+      - $ref: https://schemas.handschuh.dev/llm/request/v1
+      - $ref: https://schemas.handschuh.dev/llm/request/v2
+  output:
+    oneOf:
+      - $ref: https://schemas.handschuh.dev/llm/response/v1
+      - $ref: https://schemas.handschuh.dev/llm/response/v2

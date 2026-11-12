@@ -18,6 +18,12 @@ parameters:
   maxIterations:
     type: integer
     default: 1
+  requestSchema:
+    type: string
+    default: https://schemas.handschuh.dev/llm/request/v1
+  responseSchema:
+    type: string
+    default: https://schemas.handschuh.dev/llm/response/v1
   systemPrompt:
     type: string
     default: Return the requested result.
@@ -38,3 +44,12 @@ bindings:
   maxIterations: parameter.maxIterations
   task: input.task
   systemPrompt: parameter.systemPrompt
+contracts:
+  input:
+    oneOf:
+      - $ref: https://schemas.handschuh.dev/llm/request/v1
+      - $ref: https://schemas.handschuh.dev/llm/request/v2
+  output:
+    oneOf:
+      - $ref: https://schemas.handschuh.dev/llm/response/v1
+      - $ref: https://schemas.handschuh.dev/llm/response/v2

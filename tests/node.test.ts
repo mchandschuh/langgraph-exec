@@ -89,3 +89,23 @@ test('node execution emits debug identity and output events', async () => {
   assert.deepEqual(events.map((event) => event.event), ['node.input', 'node.output']);
   assert.equal(events[0]?.data?.node, 'direct-completion');
 });
+
+test('node selects and validates the v2 LLM request/response contracts', async () => {
+  const node = parseNodeDefinition(await readFile(fixture('v2-node.yaml'), 'utf8'), fixture('v2-node.yaml'));
+  let captured: Record<string, unknown> | undefined;
+  const response = await executeNode(node, { input: { task: { operation: 'inspect' } } }, async (request) => {
+    captured = request as unknown as Record<string, unknown>;
+    return {
+      schema: 'https://schemas.handschuh.dev/llm/response/v2',
+      status: 'success',
+      output: null,
+      failedAttempts: 0,
+      iterations: 1,
+      toolRounds: 0,
+      toolCalls: 0,
+      errors: [],
+    };
+  });
+  assert.equal(captured?.schema, 'https://schemas.handschuh.dev/llm/request/v2');
+  assert.equal(response.schema, 'https://schemas.handschuh.dev/llm/response/v2');
+});

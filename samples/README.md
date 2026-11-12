@@ -13,7 +13,9 @@ yarn build
 yarn start run samples/direct-completion/node.yml --input samples/direct-completion/input.json
 ```
 
-The command prints the bounded `llm/response/v1` response envelope. To check
+The command prints the bounded `llm/response/v1` response envelope. The node
+declares both request and response contracts; v2 can be selected by changing its
+`requestSchema` and `responseSchema` parameters. To check
 the YAML without provider access, run:
 
 ```bash

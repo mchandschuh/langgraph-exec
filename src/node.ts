@@ -1,6 +1,7 @@
-import { parseDocument } from 'yaml';
-import { complete, REQUEST_SCHEMA, RESPONSE_SCHEMA } from 'llm';
-import type { DebugSink, LlmRequest, LlmResponse, Thinking } from 'llm';
+import { complete, REQUEST_SCHEMA, REQUEST_SCHEMA_V2, RESPONSE_SCHEMA, RESPONSE_SCHEMA_V2 } from 'llm';
+import type { AnyLlmRequest, AnyLlmResponse, DebugSink, LlmRequest, LlmResponse, Thinking } from 'llm';
+import { parseStructuredDocument } from './document.js';
+import { defaultSchemaRegistry, type SchemaExpression, type SchemaRegistry } from './schema-registry.js';
 
 export const NODE_SCHEMA = 'https://schemas.handschuh.dev/langgraph-exec/node/v1' as const;
 export const NODE_IMPLEMENTATION = 'llm.complete' as const;
@@ -10,12 +11,14 @@ export type ParameterType = 'string' | 'number' | 'integer' | 'boolean' | 'objec
 
 export interface ParameterDefinition {
   readonly type: ParameterType;
+  readonly schema?: SchemaExpression;
   readonly default?: Primitive | Readonly<Record<string, unknown>>;
   readonly required?: boolean;
 }
 
 export interface PortDefinition {
   readonly type: string;
+  readonly schema?: SchemaExpression;
   readonly required?: boolean;
 }
 
@@ -30,6 +33,7 @@ export interface NodeDefinition {
     readonly outputs: Readonly<Record<string, PortDefinition>>;
   };
   readonly bindings: Readonly<Record<RequestField, string>>;
+  readonly contracts?: { readonly input?: SchemaExpression; readonly output?: SchemaExpression };
 }
 
 export interface NodeInput {
@@ -37,7 +41,7 @@ export interface NodeInput {
   readonly input?: Readonly<Record<string, unknown>>;
 }
 
-export type CompletionService = (request: LlmRequest, debug?: DebugSink) => Promise<LlmResponse>;
+export type CompletionService = (request: AnyLlmRequest, debug?: DebugSink) => Promise<AnyLlmResponse>;
 
 function debug(sink: DebugSink | undefined, event: string, data: Record<string, unknown>): void {
   if (!sink) return;
@@ -63,6 +67,8 @@ const REQUEST_FIELDS = [
   'systemPrompt',
   'taskSchema',
   'outputSchema',
+  'requestSchema',
+  'responseSchema',
 ] as const;
 
 type RequestField = (typeof REQUEST_FIELDS)[number];
@@ -124,16 +130,23 @@ function parseParameterDefinitions(value: unknown): Record<string, ParameterDefi
   for (const [name, rawDefinition] of Object.entries(record)) {
     if (!IDENTIFIER.test(name)) throw new NodeDefinitionError(`parameters.${name} is not a valid parameter name.`);
     const definition = assertRecord(rawDefinition, `parameters.${name}`);
-    assertKeys(definition, ['type', 'default', 'required'], `parameters.${name}`);
+    assertKeys(definition, ['type', 'schema', 'default', 'required'], `parameters.${name}`);
     const type = assertString(definition.type, `parameters.${name}.type`) as ParameterType;
     if (!PARAMETER_TYPES.has(type)) throw new NodeDefinitionError(`parameters.${name}.type is unsupported.`);
     const required = definition.required === undefined ? false : assertBoolean(definition.required, `parameters.${name}.required`);
-    const parsed: ParameterDefinition = { type, ...(required ? { required: true } : {}) };
+    const parsed: ParameterDefinition = { type, ...(definition.schema !== undefined ? { schema: definition.schema as SchemaExpression } : {}), ...(required ? { required: true } : {}) };
     result[name] = own(definition, 'default')
       ? { ...parsed, default: assertParameterValue(definition.default, type, `parameters.${name}.default`) }
       : parsed;
   }
   return result;
+}
+
+function validateSchemaExpressions(definition: NodeDefinition, registry: SchemaRegistry): void {
+  for (const [name, parameter] of Object.entries(definition.parameters)) if (parameter.schema) registry.assertSchema(parameter.schema, `parameters.${name}.schema`);
+  for (const [groupName, group] of Object.entries(definition.ports)) for (const [name, port] of Object.entries(group)) if (port.schema) registry.assertSchema(port.schema, `ports.${groupName}.${name}.schema`);
+  if (definition.contracts?.input) registry.assertSchema(definition.contracts.input, 'contracts.input');
+  if (definition.contracts?.output) registry.assertSchema(definition.contracts.output, 'contracts.output');
 }
 
 function parsePorts(value: unknown): NodeDefinition['ports'] {
@@ -145,10 +158,10 @@ function parsePorts(value: unknown): NodeDefinition['ports'] {
     for (const [name, rawPort] of Object.entries(record)) {
       if (!IDENTIFIER.test(name)) throw new NodeDefinitionError(`${path}.${name} is not a valid port name.`);
       const port = assertRecord(rawPort, `${path}.${name}`);
-      assertKeys(port, ['type', 'required'], `${path}.${name}`);
+      assertKeys(port, ['type', 'schema', 'required'], `${path}.${name}`);
       const type = assertString(port.type, `${path}.${name}.type`);
       const required = port.required === undefined ? false : assertBoolean(port.required, `${path}.${name}.required`);
-      result[name] = { type, ...(required ? { required: true } : {}) };
+      result[name] = { type, ...(port.schema !== undefined ? { schema: port.schema as SchemaExpression } : {}), ...(required ? { required: true } : {}) };
     }
     return result;
   };
@@ -179,17 +192,15 @@ function parseBindings(value: unknown, parameters: Readonly<Record<string, Param
   return result as Record<RequestField, string>;
 }
 
-export function parseNodeDefinition(source: string): NodeDefinition {
+export function parseNodeDefinition(source: string, filePath = 'node.yaml', registry?: SchemaRegistry): NodeDefinition {
   let value: unknown;
   try {
-    const document = parseDocument(source, { schema: 'core', strict: true, uniqueKeys: true });
-    if (document.errors.length > 0) throw document.errors[0];
-    value = document.toJS({ maxAliasCount: 0 });
+    value = parseStructuredDocument(source, filePath);
   } catch {
     throw new NodeDefinitionError('The node YAML is not valid or uses unsupported YAML features.');
   }
   const node = assertRecord(value, 'node');
-  assertKeys(node, ['schema', 'kind', 'name', 'implementation', 'parameters', 'ports', 'bindings'], 'node');
+  assertKeys(node, ['schema', 'kind', 'name', 'implementation', 'parameters', 'ports', 'bindings', 'contracts'], 'node');
   if (node.schema !== NODE_SCHEMA) throw new NodeDefinitionError(`schema must be ${NODE_SCHEMA}.`);
   if (node.kind !== 'node') throw new NodeDefinitionError('kind must be node.');
   const name = assertString(node.name, 'name');
@@ -198,7 +209,9 @@ export function parseNodeDefinition(source: string): NodeDefinition {
   const parameters = parseParameterDefinitions(node.parameters);
   const ports = parsePorts(node.ports);
   const bindings = parseBindings(node.bindings, parameters);
-  return { schema: NODE_SCHEMA, kind: 'node', name, implementation: NODE_IMPLEMENTATION, parameters, ports, bindings };
+  const definition: NodeDefinition = { schema: NODE_SCHEMA, kind: 'node', name, implementation: NODE_IMPLEMENTATION, parameters, ports, bindings, ...(node.contracts !== undefined ? { contracts: node.contracts as NodeDefinition['contracts'] } : {}) };
+  if (registry) { registry.assert(node, NODE_SCHEMA, 'node definition'); validateSchemaExpressions(definition, registry); }
+  return definition;
 }
 
 function valueAtPath(record: Readonly<Record<string, unknown>>, path: string): unknown {
@@ -210,7 +223,7 @@ function valueAtPath(record: Readonly<Record<string, unknown>>, path: string): u
   return value;
 }
 
-function resolveParameters(definition: NodeDefinition, input: NodeInput): Record<string, Primitive | Readonly<Record<string, unknown>>> {
+function resolveParameters(definition: NodeDefinition, input: NodeInput, registry?: SchemaRegistry): Record<string, Primitive | Readonly<Record<string, unknown>>> {
   const overrides = input.parameters ?? {};
   if (!isRecord(overrides)) throw new NodeDefinitionError('input.parameters must be an object.');
   for (const name of Object.keys(overrides)) {
@@ -224,6 +237,7 @@ function resolveParameters(definition: NodeDefinition, input: NodeInput): Record
       continue;
     }
     resolved[name] = assertParameterValue(value, parameter.type, `input.parameters.${name}`);
+    if (registry && parameter.schema) registry.assert(resolved[name], parameter.schema, `parameter.${name}`);
   }
   return resolved;
 }
@@ -235,6 +249,8 @@ function validateRequestValue(field: RequestField, value: unknown): void {
     if (typeof value !== 'string' && !isRecord(value)) throw new NodeDefinitionError('resolved request.task must be a string or object.');
   } else if (field === 'taskSchema' || field === 'outputSchema') {
     assertRecord(value, `resolved request.${field}`);
+  } else if (field === 'requestSchema' || field === 'responseSchema') {
+    assertString(value, `resolved request.${field}`);
   } else if (field === 'thinking') {
     if (typeof value !== 'string' || !THINKING_VALUES.has(value as Thinking)) throw new NodeDefinitionError('resolved request.thinking is unsupported.');
   } else {
@@ -246,24 +262,48 @@ function validateRequestValue(field: RequestField, value: unknown): void {
   if (field === 'model' && !MODEL.test(value as string)) throw new NodeDefinitionError('resolved request.model is invalid.');
 }
 
-export function resolveRequest(definition: NodeDefinition, input: NodeInput): LlmRequest {
+export function resolveRequest(definition: NodeDefinition, input: NodeInput, registry?: SchemaRegistry): AnyLlmRequest {
   if (!isRecord(input)) throw new NodeDefinitionError('Execution input must be an object.');
-  const parameters = resolveParameters(definition, input);
+  const parameters = resolveParameters(definition, input, registry);
   const inputValues = input.input ?? {};
   if (!isRecord(inputValues)) throw new NodeDefinitionError('input.input must be an object.');
-  const request: Record<string, unknown> = { schema: REQUEST_SCHEMA };
+  const request: Record<string, unknown> = { schema: parameters.requestSchema ?? REQUEST_SCHEMA };
   for (const [field, source] of Object.entries(definition.bindings) as [RequestField, string][]) {
     const value = source.startsWith('parameter.')
       ? parameters[source.slice('parameter.'.length)]
       : valueAtPath(inputValues, source.slice('input.'.length));
     if (value === undefined) throw new NodeDefinitionError(`Binding '${field}' could not resolve '${source}'.`);
     validateRequestValue(field, value);
+    if (field === 'requestSchema' || field === 'responseSchema') continue;
     request[field] = value;
   }
-  return request as unknown as LlmRequest;
+  if (request.schema !== REQUEST_SCHEMA && request.schema !== REQUEST_SCHEMA_V2) throw new NodeDefinitionError(`resolved request.requestSchema must be ${REQUEST_SCHEMA} or ${REQUEST_SCHEMA_V2}.`);
+  if (registry) registry.assert(request, request.schema as string, 'LLM request');
+  if (registry && definition.contracts?.input) registry.assert(request, definition.contracts.input, 'node input contract');
+  return request as unknown as AnyLlmRequest;
 }
 
-function providerFailure(): LlmResponse {
+function configuredResponseSchema(definition: NodeDefinition, input: NodeInput, request: AnyLlmRequest): string {
+  const parameters = input.parameters ?? {};
+  const configured = isRecord(parameters) ? parameters.responseSchema : undefined;
+  if (configured !== undefined) {
+    if (configured !== RESPONSE_SCHEMA && configured !== RESPONSE_SCHEMA_V2) throw new NodeDefinitionError(`resolved request.responseSchema must be ${RESPONSE_SCHEMA} or ${RESPONSE_SCHEMA_V2}.`);
+    return configured;
+  }
+  return request.schema === REQUEST_SCHEMA_V2 ? RESPONSE_SCHEMA_V2 : RESPONSE_SCHEMA;
+}
+
+function providerFailure(schema: string = RESPONSE_SCHEMA): AnyLlmResponse {
+  if (schema === RESPONSE_SCHEMA_V2) return {
+    schema: RESPONSE_SCHEMA_V2,
+    status: 'provider_error',
+    output: null,
+    failedAttempts: 1,
+    iterations: 0,
+    toolRounds: 0,
+    toolCalls: 0,
+    errors: [{ code: 'PROVIDER_REQUEST_FAILED', message: 'The provider request failed before a usable response was returned.', phase: 'provider' }],
+  };
   return {
     schema: RESPONSE_SCHEMA,
     status: 'provider_error',
@@ -274,7 +314,8 @@ function providerFailure(): LlmResponse {
   };
 }
 
-function inputFailure(error: unknown): LlmResponse {
+function inputFailure(error: unknown, schema: string = RESPONSE_SCHEMA): AnyLlmResponse {
+  if (schema === RESPONSE_SCHEMA_V2) return { schema: RESPONSE_SCHEMA_V2, status: 'input_invalid', output: null, failedAttempts: 0, iterations: 0, toolRounds: 0, toolCalls: 0, errors: [{ code: 'REQUEST_INVALID', message: error instanceof NodeDefinitionError ? error.message : 'The node input was invalid.', phase: 'request' }] };
   return {
     schema: RESPONSE_SCHEMA,
     status: 'input_invalid',
@@ -289,27 +330,34 @@ function inputFailure(error: unknown): LlmResponse {
   };
 }
 
-export const defaultCompletionService: CompletionService = async (request, debugSink) => (await complete(request, { debug: debugSink })) as LlmResponse;
+export const defaultCompletionService: CompletionService = async (request, debugSink) => (await complete(request, { debug: debugSink })) as AnyLlmResponse;
 
 export async function executeNode(
   definition: NodeDefinition,
   input: NodeInput,
   service: CompletionService = defaultCompletionService,
   debugSink?: DebugSink,
-): Promise<LlmResponse> {
-  let request: LlmRequest;
+): Promise<AnyLlmResponse> {
+  const registry = await defaultSchemaRegistry();
+  let request: AnyLlmRequest;
+  let responseSchema: string;
   try {
-    request = resolveRequest(definition, input);
+    request = resolveRequest(definition, input, registry);
+    responseSchema = configuredResponseSchema(definition, input, request);
   } catch (error) {
-    return inputFailure(error);
+    const configured = isRecord(input.parameters) && typeof input.parameters.responseSchema === 'string' ? input.parameters.responseSchema : RESPONSE_SCHEMA;
+    return inputFailure(error, configured as string);
   }
   debug(debugSink, 'node.input', { node: definition.name, implementation: definition.implementation, input: input.input ?? {}, parameters: input.parameters ?? {} });
   try {
     const response = await service(request, debugSink);
+    registry.assert(response, responseSchema, 'LLM response');
+    if (definition.contracts?.output) registry.assert(response, definition.contracts.output, 'node output contract');
+    for (const [name, port] of Object.entries(definition.ports.outputs)) if (port.schema && response.output !== null) registry.assert(response.output.value, port.schema, `ports.outputs.${name}`);
     debug(debugSink, 'node.output', { node: definition.name, implementation: definition.implementation, output: response });
     return response;
   } catch {
-    const response = providerFailure();
+    const response = providerFailure(responseSchema);
     debug(debugSink, 'node.output', { node: definition.name, implementation: definition.implementation, output: response });
     return response;
   }

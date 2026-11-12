@@ -16,7 +16,7 @@ The repository is delivered in three independently releasable phases:
 ## Current state
 
 Phase 1 implements a closed direct `llm.complete` node contract, typed parameter
-and input bindings, provider-free `validate`/`inspect`, and bounded `run`
+and input bindings, schema-registry-backed request/response contracts, provider-free `validate`/`inspect`, and bounded `run`
 execution through the injected `/home/michael/src/github/llm` service boundary.
 Phase 2 adds trusted imports, closed acyclic graph composition, StateGraph
 lowering, conditional routes, reducers, and nested public-port components.
@@ -37,6 +37,14 @@ YAML component
 The `llm` package remains the provider and structured-output boundary. The graph
 runtime will own YAML resolution, composition, state transitions, routing,
 budgets, and graph-level observability rather than duplicating provider logic.
+
+Node, graph, and control-loop documents may be YAML or JSON. Primitive `type`
+fields remain supported; parameters, ports, state fields, and node contracts may
+also use inline JSON Schema or registry `$ref` expressions. The built-in registry
+includes this package's `schemas/` directory and the installed `llm/schemas/`
+directory. Additional schema directories can be listed one per line in
+`~/.langgraph-exec/schemas/registry/paths.txt`, supplied with
+`LANGGRAPH_EXEC_SCHEMA_REGISTRY`, or passed with `--schema-registry`.
 
 ## Local development
 
@@ -89,6 +97,8 @@ nested-graph, and bounded-loop samples.
   migration.
 - Provider-backed execution and side effects are never implied by validation or
   inspection commands.
+- LLM nodes default to `llm/request/v1` and `llm/response/v1`; v2 contracts can be
+  selected with the node's `requestSchema` and `responseSchema` parameters.
 
 See [`SKILL.md`](./SKILL.md) for operational guidance and the phased records
 under [`.docs/work-items/`](./.docs/work-items/) for the implementation plan.

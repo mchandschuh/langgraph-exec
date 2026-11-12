@@ -33,6 +33,12 @@ composition and StateGraph lowering. Phase 3 provides explicit bounded loops
 with graph-owned counters and budgets; do not claim persistence or
 interrupt/resume behavior from the loop capability.
 
+Node, graph, and loop definitions accept YAML or JSON. Primitive parameter and
+port types remain supported, while the local schema registry also resolves
+inline JSON Schema and registered `$ref`/`oneOf` contracts. The registry reads
+additional schema directories from `~/.langgraph-exec/schemas/registry/paths.txt`,
+`LANGGRAPH_EXEC_SCHEMA_REGISTRY`, or `--schema-registry`.
+
 ## Safety boundary
 
 - `validate` and `inspect` are intended to be offline and non-mutating.
@@ -54,6 +60,7 @@ langgraph-exec --version
 langgraph-exec validate <component.yml>
 langgraph-exec inspect <component.yml> [--resolved] [--format json]
 langgraph-exec run <component.yml> --input <input.json>
+langgraph-exec schemas
 ```
 
 Phase-specific behavior and acceptance criteria are authoritative in:

@@ -4,9 +4,10 @@ taskUid: WI-0005-10000000
 orderKey: "10000000"
 parentTaskUid: WI-0005-00000000
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the LangGraph built-in alignment test strategy (WI-0005)
-objective: Define deterministic evidence for native LangGraph lowering, runtime policies, observability, compatibility, and release boundaries.
+objective: Define deterministic evidence for native LangGraph lowering, runtime
+  policies, observability, compatibility, and release boundaries.
 references:
   required:
     - .docs/work-items/WI-0005/work-item.json
@@ -45,12 +46,14 @@ governance:
 dependsOn:
   - WI-0005-00000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
   intent:
-    summary: Define provider-free tests that prove the repository uses LangGraph runtime primitives without weakening its DSL, provider, bounded-budget, or CLI contracts.
+    summary: Define provider-free tests that prove the repository uses LangGraph
+      runtime primitives without weakening its DSL, provider, bounded-budget, or
+      CLI contracts.
     inputs:
       - id: INPUT-WORK-ITEM
         kind: requirement
@@ -65,58 +68,68 @@ task:
     requirements:
       - id: REQ-001
         kind: requirement
-        statement: YAML compiler, trust boundary, public ports, nested encapsulation, and provider contracts remain intact.
+        statement: YAML compiler, trust boundary, public ports, nested encapsulation,
+          and provider contracts remain intact.
         inputRefs:
           - INPUT-WORK-ITEM
         required: true
       - id: REQ-002
         kind: requirement
-        statement: Loops, fan-out/fan-in, maps, joins, and switch routes execute through compiled StateGraph primitives.
+        statement: Loops, fan-out/fan-in, maps, joins, and switch routes execute through
+          compiled StateGraph primitives.
         inputRefs:
           - INPUT-DESIGN
         required: true
       - id: REQ-003
         kind: requirement
-        statement: Operational retries and timeouts use LangGraph policies while provider response semantics remain correctly bounded.
+        statement: Operational retries and timeouts use LangGraph policies while
+          provider response semantics remain correctly bounded.
         inputRefs:
           - INPUT-DESIGN
         required: true
       - id: REQ-004
         kind: requirement
-        statement: Diagnostics represent actual runtime updates, tasks, routes, and public-port values.
+        statement: Diagnostics represent actual runtime updates, tasks, routes, and
+          public-port values.
         inputRefs:
           - INPUT-DESIGN
         required: true
       - id: REQ-005
         kind: requirement
-        statement: Invoke behavior and supported runtime forwarding remain documented and persistence is not falsely claimed.
+        statement: Invoke behavior and supported runtime forwarding remain documented
+          and persistence is not falsely claimed.
         inputRefs:
           - INPUT-WORK-ITEM
         required: true
     invariants:
       - id: INV-001
-        statement: Every accepted graph execution path has a finite repository-owned semantic work budget.
+        statement: Every accepted graph execution path has a finite repository-owned
+          semantic work budget.
         inputRefs:
           - INPUT-WORK-ITEM
         required: true
       - id: INV-002
-        statement: A node failure remains distinguishable from a structured provider response failure.
+        statement: A node failure remains distinguishable from a structured provider
+          response failure.
         inputRefs:
           - INPUT-DESIGN
         required: true
       - id: INV-003
-        statement: Reducer aggregation is deterministic and conflicting replace writes fail closed.
+        statement: Reducer aggregation is deterministic and conflicting replace writes
+          fail closed.
         inputRefs:
           - INPUT-WORK-ITEM
         required: true
       - id: INV-004
-        statement: No test requires credentials, live provider access, persistence, or production deployment.
+        statement: No test requires credentials, live provider access, persistence, or
+          production deployment.
         inputRefs:
           - INPUT-WORK-ITEM
         required: true
     objectives:
       - id: OBJ-001
-        statement: Verify native StateGraph lowering for loops, routes, static parallel branches, dynamic maps, and reducer joins.
+        statement: Verify native StateGraph lowering for loops, routes, static parallel
+          branches, dynamic maps, and reducer joins.
         inputRefs:
           - INPUT-DESIGN
         requirementRefs:
@@ -125,7 +138,8 @@ task:
           - INV-001
           - INV-003
       - id: OBJ-002
-        statement: Verify native retry and timeout policy behavior and the provider/runtime failure boundary.
+        statement: Verify native retry and timeout policy behavior and the
+          provider/runtime failure boundary.
         inputRefs:
           - INPUT-DESIGN
         requirementRefs:
@@ -133,7 +147,8 @@ task:
         invariantRefs:
           - INV-002
       - id: OBJ-003
-        statement: Verify actual runtime stream/debug/task events and public-port projections.
+        statement: Verify actual runtime stream/debug/task events and public-port
+          projections.
         inputRefs:
           - INPUT-DESIGN
         requirementRefs:
@@ -141,7 +156,8 @@ task:
         invariantRefs:
           - INV-003
       - id: OBJ-004
-        statement: Verify compatibility, provider-free operation, and explicit non-claims for unsupported persistence and human control.
+        statement: Verify compatibility, provider-free operation, and explicit
+          non-claims for unsupported persistence and human control.
         inputRefs:
           - INPUT-WORK-ITEM
         requirementRefs:
@@ -152,8 +168,10 @@ task:
           - INV-004
     nonGoals:
       - Do not use live providers or credentials.
-      - Do not claim checkpoint persistence, interrupt/resume, human approval, or durable side-effect recovery.
-      - Do not replace DSL parser, trusted import, or provider contract tests with only LangGraph unit tests.
+      - Do not claim checkpoint persistence, interrupt/resume, human approval,
+        or durable side-effect recovery.
+      - Do not replace DSL parser, trusted import, or provider contract tests
+        with only LangGraph unit tests.
   result:
     status: defined
     testCases:
@@ -161,15 +179,20 @@ task:
         title: Preserve compiler, import, port, and provider boundaries
         type: component
         requirementLevel: required
-        purpose: Prove native lowering does not remove application-specific validation and composition guarantees.
+        purpose: Prove native lowering does not remove application-specific validation
+          and composition guarantees.
         procedure:
           executionMode: executable
-          target: Existing node, graph, nested graph, import-security, and provider-free test suites
+          target: Existing node, graph, nested graph, import-security, and provider-free
+            test suites
           steps:
-            - Run the existing regression suite with fake components and injected completion services.
-            - Assert trusted traversal, digest, cycle, public-port, and provider-free inspection behavior remains covered.
+            - Run the existing regression suite with fake components and
+              injected completion services.
+            - Assert trusted traversal, digest, cycle, public-port, and
+              provider-free inspection behavior remains covered.
           command: yarn test
-        expectedOutcome: Existing boundary and regression tests pass without live provider access.
+        expectedOutcome: Existing boundary and regression tests pass without live
+          provider access.
         passCriteria: The test process exits zero and all required boundary assertions pass.
         evidenceTier: component
         fixtureRefs:
@@ -180,17 +203,21 @@ task:
         title: Execute bounded loops through StateGraph cycles
         type: component
         requirementLevel: required
-        purpose: Prove loop bodies re-enter and exit through conditional graph edges while semantic budgets remain enforced.
+        purpose: Prove loop bodies re-enter and exit through conditional graph edges
+          while semantic budgets remain enforced.
         procedure:
           executionMode: executable
           target: Compiled bounded-loop StateGraph
           steps:
             - Execute an early-exit loop with a fake body.
             - Execute an exhaustion loop and a max-step budget case.
-            - Assert route updates, counters, terminal status, and recursion safety are distinct.
+            - Assert route updates, counters, terminal status, and recursion
+              safety are distinct.
           command: yarn test
-        expectedOutcome: Loop execution uses graph transitions and returns deterministic bounded outcomes.
-        passCriteria: Early exit, iteration exhaustion, and step-budget tests pass without a manual loop runner.
+        expectedOutcome: Loop execution uses graph transitions and returns deterministic
+          bounded outcomes.
+        passCriteria: Early exit, iteration exhaustion, and step-budget tests pass
+          without a manual loop runner.
         evidenceTier: component
         fixtureRefs:
           - FIX-002
@@ -200,16 +227,19 @@ task:
         title: Execute static fan-out and reducer fan-in through StateGraph
         type: component
         requirementLevel: required
-        purpose: Prove parallel branches are scheduled by LangGraph and joined by reducer channels.
+        purpose: Prove parallel branches are scheduled by LangGraph and joined by
+          reducer channels.
         procedure:
           executionMode: executable
           target: Compiled StateGraph static parallel topology
           steps:
             - Execute independent fake branch nodes from the same predecessor.
             - Join branch updates through append, sum, or merge reducers.
-            - Assert conflicting replace writes fail during validation or graph execution according to the contract.
+            - Assert conflicting replace writes fail during validation or graph
+              execution according to the contract.
           command: yarn test
-        expectedOutcome: Branch scheduling, barrier behavior, reducer aggregation, and conflict policy are deterministic.
+        expectedOutcome: Branch scheduling, barrier behavior, reducer aggregation, and
+          conflict policy are deterministic.
         passCriteria: Static fan-out/fan-in tests pass without Promise.all control execution.
         evidenceTier: component
         fixtureRefs:
@@ -220,16 +250,20 @@ task:
         title: Execute bounded dynamic map work through Send
         type: component
         requirementLevel: required
-        purpose: Prove map expansion uses bounded LangGraph Send work and reducer aggregation.
+        purpose: Prove map expansion uses bounded LangGraph Send work and reducer
+          aggregation.
         procedure:
           executionMode: executable
           target: Compiled StateGraph dynamic map topology
           steps:
             - Run a map with a finite collection within the declared item limit.
-            - Reject a collection exceeding the compiler-owned item limit before Send expansion.
-            - Assert result ordering or explicit ordering metadata matches the public contract.
+            - Reject a collection exceeding the compiler-owned item limit before
+              Send expansion.
+            - Assert result ordering or explicit ordering metadata matches the
+              public contract.
           command: yarn test
-        expectedOutcome: Dynamic work is bounded before scheduling and results aggregate through graph state.
+        expectedOutcome: Dynamic work is bounded before scheduling and results aggregate
+          through graph state.
         passCriteria: Map limit, fan-out, reducer, and ordering tests pass.
         evidenceTier: component
         fixtureRefs:
@@ -240,18 +274,23 @@ task:
         title: Use native retry and timeout policies
         type: component
         requirementLevel: required
-        purpose: Prove operational retry and timeout behavior is delegated to LangGraph while structured provider failures retain their boundary.
+        purpose: Prove operational retry and timeout behavior is delegated to LangGraph
+          while structured provider failures retain their boundary.
         procedure:
           executionMode: executable
           target: StateGraph node retryPolicy and timeout configuration
           steps:
             - Execute a fake node that throws retryable and non-retryable errors.
             - Assert finite attempts, retry classification, and bounded failure.
-            - Execute a slow fake node with a native timeout and assert no late state update.
-            - Execute structured provider error responses and assert they are not confused with thrown node errors.
+            - Execute a slow fake node with a native timeout and assert no late
+              state update.
+            - Execute structured provider error responses and assert they are
+              not confused with thrown node errors.
           command: yarn test
-        expectedOutcome: Native operational policies govern thrown node failures and provider response semantics remain explicit.
-        passCriteria: Retry, timeout, and provider-boundary tests pass with no custom retry loop for operational failures.
+        expectedOutcome: Native operational policies govern thrown node failures and
+          provider response semantics remain explicit.
+        passCriteria: Retry, timeout, and provider-boundary tests pass with no custom
+          retry loop for operational failures.
         evidenceTier: component
         fixtureRefs:
           - FIX-005
@@ -261,18 +300,23 @@ task:
         title: Report accurate runtime stream and debug events
         type: component
         requirementLevel: required
-        purpose: Prove diagnostics are derived from actual node updates and task execution.
+        purpose: Prove diagnostics are derived from actual node updates and task
+          execution.
         procedure:
           executionMode: executable
           target: Compiled graph stream modes and custom public-port projection
           steps:
             - Stream updates, debug, and task events for a multi-node graph.
             - Assert downstream input values reflect completed upstream updates.
-            - Assert node output and route events identify the actual node and route.
-            - Assert public-port events do not use a final-state snapshot for every node.
+            - Assert node output and route events identify the actual node and
+              route.
+            - Assert public-port events do not use a final-state snapshot for
+              every node.
           command: yarn test
         expectedOutcome: Streamed events correspond to actual execution order and values.
-        passCriteria: Runtime observability tests pass and the old inaccurate precomputed projection is removed or confined to validated adapter events.
+        passCriteria: Runtime observability tests pass and the old inaccurate
+          precomputed projection is removed or confined to validated adapter
+          events.
         evidenceTier: component
         fixtureRefs:
           - FIX-006
@@ -282,14 +326,17 @@ task:
         title: Preserve invoke and CLI compatibility
         type: cli
         requirementLevel: required
-        purpose: Prove current library and CLI invocation behavior remains bounded and provider-free where documented.
+        purpose: Prove current library and CLI invocation behavior remains bounded and
+          provider-free where documented.
         procedure:
           executionMode: executable
           target: Public compiled graph API and CLI
           steps:
             - Run validate and inspect for node, graph, and loop artifacts.
-            - Run fake-component library invocations and assert public output ports.
-            - Verify stream/runtime options are documented without enabling unsupported persistence claims.
+            - Run fake-component library invocations and assert public output
+              ports.
+            - Verify stream/runtime options are documented without enabling
+              unsupported persistence claims.
           command: yarn typecheck && yarn test && yarn build
         expectedOutcome: Existing invocation and CLI behavior remains compatible and documented.
         passCriteria: Typecheck, tests, build, and CLI smoke assertions pass.
@@ -303,16 +350,19 @@ task:
         title: Verify static scope and evidence boundaries
         type: inspection
         requirementLevel: required
-        purpose: Prove the change does not introduce credentials, arbitrary code execution, unsupported persistence claims, or unbounded scheduling.
+        purpose: Prove the change does not introduce credentials, arbitrary code
+          execution, unsupported persistence claims, or unbounded scheduling.
         procedure:
           executionMode: executable
           target: Repository paths, work-item scope, and generated package artifacts
           steps:
             - Run git diff --check and inspect changed paths.
-            - Search for forbidden secret paths and unsupported persistence claims.
+            - Search for forbidden secret paths and unsupported persistence
+              claims.
             - Inspect native LangGraph usage and bounded compiler checks.
           command: git diff --check
-        expectedOutcome: Scope and forbidden-path checks pass with explicit evidence limitations.
+        expectedOutcome: Scope and forbidden-path checks pass with explicit evidence
+          limitations.
         passCriteria: No forbidden secret files or out-of-scope runtime claims are present.
         evidenceTier: inspection
         fixtureRefs: []
@@ -321,46 +371,51 @@ task:
     fixtures:
       - id: FIX-001
         name: existing-regression-fixtures
-        purpose: Preserve node, graph, import, nested-component, CLI, and provider-boundary coverage.
+        purpose: Preserve node, graph, import, nested-component, CLI, and
+          provider-boundary coverage.
         setup: Use the existing tests/fixtures and fake components.
         teardown: No persistent state is created.
         sourceRefs:
-          - '#fixture/FIX-001'
+          - "#fixture/FIX-001"
       - id: FIX-002
         name: bounded-loop-stategraph-fixtures
-        purpose: Exercise early exit, iteration exhaustion, maxSteps, and nested body behavior.
+        purpose: Exercise early exit, iteration exhaustion, maxSteps, and nested body
+          behavior.
         setup: Adapt existing loop fixtures to compile a StateGraph cycle.
         teardown: Discard in-memory graph state.
         sourceRefs:
-          - '#fixture/FIX-002'
+          - "#fixture/FIX-002"
       - id: FIX-003
         name: static-fanout-fixtures
-        purpose: Exercise parallel branch scheduling, joins, reducers, and replace conflicts.
+        purpose: Exercise parallel branch scheduling, joins, reducers, and replace
+          conflicts.
         setup: Build fake branch components and a static graph topology.
         teardown: Discard fake branch results.
         sourceRefs:
-          - '#fixture/FIX-003'
+          - "#fixture/FIX-003"
       - id: FIX-004
         name: dynamic-map-fixtures
         purpose: Exercise bounded Send expansion, item limits, and ordered aggregation.
         setup: Build a finite fake item collection and map worker.
         teardown: Discard generated map state.
         sourceRefs:
-          - '#fixture/FIX-004'
+          - "#fixture/FIX-004"
       - id: FIX-005
         name: policy-fixtures
-        purpose: Exercise retryable errors, permanent errors, timeouts, and structured provider failures.
+        purpose: Exercise retryable errors, permanent errors, timeouts, and structured
+          provider failures.
         setup: Use deterministic fake nodes and injected completion services.
         teardown: Clear counters and timers.
         sourceRefs:
-          - '#fixture/FIX-005'
+          - "#fixture/FIX-005"
       - id: FIX-006
         name: runtime-event-fixtures
-        purpose: Exercise actual graph update, debug, task, route, and public-port events.
+        purpose: Exercise actual graph update, debug, task, route, and public-port
+          events.
         setup: Run a multi-node graph with distinct upstream and downstream values.
         teardown: Close or exhaust in-memory streams.
         sourceRefs:
-          - '#fixture/FIX-006'
+          - "#fixture/FIX-006"
     coverage:
       - id: COV-001
         requirementRefs:
@@ -373,7 +428,8 @@ task:
           - TC-001
           - TC-007
           - TC-008
-        rationale: Existing boundaries and static scope checks must remain part of the refactor evidence.
+        rationale: Existing boundaries and static scope checks must remain part of the
+          refactor evidence.
       - id: COV-002
         requirementRefs:
           - REQ-002
@@ -386,7 +442,8 @@ task:
           - TC-002
           - TC-003
           - TC-004
-        rationale: Native graph control flow must preserve bounded execution and deterministic state aggregation.
+        rationale: Native graph control flow must preserve bounded execution and
+          deterministic state aggregation.
       - id: COV-003
         requirementRefs:
           - REQ-003
@@ -396,7 +453,8 @@ task:
           - OBJ-002
         testCaseRefs:
           - TC-005
-        rationale: Operational failures and structured provider failures must remain distinct.
+        rationale: Operational failures and structured provider failures must remain
+          distinct.
       - id: COV-004
         requirementRefs:
           - REQ-004
@@ -418,7 +476,8 @@ task:
         testCaseRefs:
           - TC-007
           - TC-008
-        rationale: Public runtime compatibility and non-claims require explicit release and inspection evidence.
+        rationale: Public runtime compatibility and non-claims require explicit release
+          and inspection evidence.
     minimumRequiredTestCaseRefs:
       - TC-001
       - TC-002
@@ -431,4 +490,5 @@ task:
     recommendedTestCaseRefs: []
     evidenceLimitations:
       - Provider-free tests do not prove authenticated provider behavior.
-      - No checkpoint, interrupt/resume, durable side-effect, deployment, or production evidence is required or claimed.
+      - No checkpoint, interrupt/resume, durable side-effect, deployment, or
+        production evidence is required or claimed.

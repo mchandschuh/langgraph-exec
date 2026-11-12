@@ -4,9 +4,11 @@ taskUid: WI-0005-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0005-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Lower declarative control flow into native LangGraph graphs (WI-0005)
-objective: Replace manual loop, parallel, map, join, and switch execution with LangGraph graph primitives while preserving repository-specific bounded contracts.
+objective: Replace manual loop, parallel, map, join, and switch execution with
+  LangGraph graph primitives while preserving repository-specific bounded
+  contracts.
 references:
   required:
     - .docs/work-items/WI-0005/work-item.json
@@ -54,12 +56,14 @@ governance:
 dependsOn:
   - WI-0005-10000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
   intent:
-    summary: Lower validated YAML control flow into StateGraph cycles, edges, conditional edges, Send fan-out, and reducer channels instead of executing a second manual orchestration runtime.
+    summary: Lower validated YAML control flow into StateGraph cycles, edges,
+      conditional edges, Send fan-out, and reducer channels instead of executing
+      a second manual orchestration runtime.
     changeTypes:
       - production-code
       - test-code
@@ -84,7 +88,9 @@ task:
         required: true
     objectives:
       - id: OBJ-001
-        statement: Compile bounded loops into StateGraph conditional cycles with explicit semantic counters, maxSteps accounting, exhaustion routes, and recursion safety.
+        statement: Compile bounded loops into StateGraph conditional cycles with
+          explicit semantic counters, maxSteps accounting, exhaustion routes,
+          and recursion safety.
         inputRefs:
           - INPUT-WORK-ITEM
           - INPUT-DESIGN
@@ -92,7 +98,9 @@ task:
         testCaseRefs:
           - WI-0005|10000000#test-case/TC-002
       - id: OBJ-002
-        statement: Compile static parallel branches and joins into graph edges and reducer channels while retaining branch limits and replace-conflict validation.
+        statement: Compile static parallel branches and joins into graph edges and
+          reducer channels while retaining branch limits and replace-conflict
+          validation.
         inputRefs:
           - INPUT-WORK-ITEM
           - INPUT-DESIGN
@@ -100,7 +108,9 @@ task:
         testCaseRefs:
           - WI-0005|10000000#test-case/TC-003
       - id: OBJ-003
-        statement: Compile dynamic map work into bounded Send fan-out and reducer-based aggregation while preserving explicit item limits and public result ordering.
+        statement: Compile dynamic map work into bounded Send fan-out and reducer-based
+          aggregation while preserving explicit item limits and public result
+          ordering.
         inputRefs:
           - INPUT-WORK-ITEM
           - INPUT-DESIGN
@@ -108,7 +118,8 @@ task:
         testCaseRefs:
           - WI-0005|10000000#test-case/TC-004
       - id: OBJ-004
-        statement: Use addConditionalEdges for switch routing and preserve nested public-port isolation without a second runtime route evaluator.
+        statement: Use addConditionalEdges for switch routing and preserve nested
+          public-port isolation without a second runtime route evaluator.
         inputRefs:
           - INPUT-DESIGN
           - INPUT-TEST-STRATEGY
@@ -126,35 +137,106 @@ task:
       - tests/fixtures/graphs/
       - tests/fixtures/loops/
     nonGoals:
-      - Do not remove YAML validation, trusted imports, public ports, nested state isolation, or provider boundaries.
-      - Do not implement checkpoint persistence, interrupt/resume, or durable side-effect recovery.
+      - Do not remove YAML validation, trusted imports, public ports, nested
+        state isolation, or provider boundaries.
+      - Do not implement checkpoint persistence, interrupt/resume, or durable
+        side-effect recovery.
       - Do not allow unbounded Send expansion or arbitrary YAML executable code.
     steps:
-      - Extend normalized graph IR and compiler-generated state channels for semantic loop counters, step budgets, branch results, map results, and route state.
-      - Replace the manual loop invoke path with a compiled StateGraph cycle and conditional exit/re-entry transitions.
-      - Lower static parallel branches and joins to graph edges and reducers; lower dynamic map expansion to bounded Send work.
-      - Keep control helpers only for compiler validation, result-envelope adaptation, or semantics not represented by LangGraph, and remove duplicate runtime scheduling.
-      - Update fixtures, tests, inspection output, and documentation for the native execution path.
+      - Extend normalized graph IR and compiler-generated state channels for
+        semantic loop counters, step budgets, branch results, map results, and
+        route state.
+      - Replace the manual loop invoke path with a compiled StateGraph cycle and
+        conditional exit/re-entry transitions.
+      - Lower static parallel branches and joins to graph edges and reducers;
+        lower dynamic map expansion to bounded Send work.
+      - Keep control helpers only for compiler validation, result-envelope
+        adaptation, or semantics not represented by LangGraph, and remove
+        duplicate runtime scheduling.
+      - Update fixtures, tests, inspection output, and documentation for the
+        native execution path.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: No implementation has been performed; this task is planned and awaits the completed design and test-strategy tasks.
+      summary: Replaced the bounded loop while-runner with a LangGraph StateGraph
+        cycle, added static StateGraph fan-out/fan-in reducer coverage, and
+        preserved semantic budgets and public result envelopes.
       changes:
-        - id: CHANGE-PLANNED
-          type: documentation
-          summary: Record the planned native graph-lowering boundary and required regression coverage.
+        - id: CHANGE-001
+          type: production-code
+          summary: Lower bounded control.loop execution into a StateGraph body cycle with
+            conditional exit/re-entry routing, graph-owned counters, recursion
+            safety, and preserved LoopResult statuses.
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - src/loop.ts
+        - id: CHANGE-002
+          type: production-code
+          summary: Preserve static graph scheduling through StateGraph edges and reducer
+            channels, including native retry/timeout node policy options.
+          objectiveRefs:
+            - OBJ-002
+            - OBJ-004
+          paths:
+            - src/graph.ts
+            - schemas/graph/v1/graph.schema.json
+        - id: CHANGE-003
+          type: test-code
+          summary: Add deterministic StateGraph loop, stream, retry, timeout, and static
+            parallel fan-out/fan-in tests.
           objectiveRefs:
             - OBJ-001
             - OBJ-002
-            - OBJ-003
             - OBJ-004
           paths:
-            - .docs/work-items/WI-0005/steps/WI-0005-20000000-native-lowering.yaml
-      testImplementations: []
+            - tests/loop.test.ts
+            - tests/graph.test.ts
+            - tests/fixtures/graphs/parallel-dag.yml
+            - tests/fixtures/graphs/timeout-dag.yml
+      testImplementations:
+        - testCaseRef: WI-0005|10000000#test-case/TC-002
+          path: tests/loop.test.ts
+          selector: valid loop exits early with deterministic counters
+        - testCaseRef: WI-0005|10000000#test-case/TC-003
+          path: tests/graph.test.ts
+          selector: static parallel branches use LangGraph supersteps and reducers
+        - testCaseRef: WI-0005|10000000#test-case/TC-005
+          path: tests/graph.test.ts
+          selector: graph node retryPolicy is executed by LangGraph for operational
+            failures
+        - testCaseRef: WI-0005|10000000#test-case/TC-006
+          path: tests/graph.test.ts
+          selector: compiled graphs expose LangGraph stream updates and preserve actual
+            node event values
     verification:
-      status: not-run
-      objectiveRefs: []
-      tests: []
+      status: passed
+      objectiveRefs:
+        - OBJ-001
+        - OBJ-002
+        - OBJ-004
+      tests:
+        - id: EXEC-001
+          type: component
+          testCaseRefs:
+            - WI-0005|10000000#test-case/TC-002
+            - WI-0005|10000000#test-case/TC-003
+            - WI-0005|10000000#test-case/TC-005
+            - WI-0005|10000000#test-case/TC-006
+          status: passed
+          result: yarn build && yarn test passed 48 provider-free tests, including
+            StateGraph loop, static fan-out/fan-in, native retry/timeout, stream
+            updates, and actual node event values.
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - WI-0005|10000000#test-case/TC-002
+            - WI-0005|10000000#test-case/TC-003
+          status: passed
+          result: yarn typecheck passed and graph/loop schema fixtures validated.
     limitations:
-      - The implementation task is intentionally not started; no production behavior or test evidence is claimed.
-      - Native lowering must not be considered complete until the test-strategy task and implementation verification pass.
+      - Dynamic Send/map lowering is not implemented because the current YAML
+        graph contract has no dynamic collection/map document form; the existing
+        standalone control.map helper remains outside compiled graph scheduling.
+      - This implementation does not add checkpoint persistence,
+        interrupt/resume, durable side-effect recovery, or production evidence.

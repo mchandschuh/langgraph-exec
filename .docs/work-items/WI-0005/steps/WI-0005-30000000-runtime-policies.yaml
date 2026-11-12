@@ -4,9 +4,10 @@ taskUid: WI-0005-30000000
 orderKey: "30000000"
 parentTaskUid: WI-0005-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Use native LangGraph runtime policies and observability (WI-0005)
-objective: Replace duplicated operational retry/timeout behavior and inaccurate debug projection with LangGraph policies and runtime events.
+objective: Replace duplicated operational retry/timeout behavior and inaccurate
+  debug projection with LangGraph policies and runtime events.
 references:
   required:
     - .docs/work-items/WI-0005/work-item.json
@@ -60,12 +61,15 @@ dependsOn:
   - WI-0005-10000000
   - WI-0005-20000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
   intent:
-    summary: Configure LangGraph retryPolicy and timeout for operational node failures, preserve provider-specific structured response handling, and expose accurate runtime stream/debug/task events through the compiled runtime boundary.
+    summary: Configure LangGraph retryPolicy and timeout for operational node
+      failures, preserve provider-specific structured response handling, and
+      expose accurate runtime stream/debug/task events through the compiled
+      runtime boundary.
     changeTypes:
       - production-code
       - test-code
@@ -95,7 +99,9 @@ task:
         required: true
     objectives:
       - id: OBJ-001
-        statement: Map operational retry configuration to LangGraph RetryPolicy with finite attempts, retryOn classification, backoff, and bounded failure adaptation.
+        statement: Map operational retry configuration to LangGraph RetryPolicy with
+          finite attempts, retryOn classification, backoff, and bounded failure
+          adaptation.
         inputRefs:
           - INPUT-WORK-ITEM
           - INPUT-DESIGN
@@ -103,7 +109,8 @@ task:
         testCaseRefs:
           - WI-0005|10000000#test-case/TC-005
       - id: OBJ-002
-        statement: Map node and task timeout configuration to LangGraph timeout facilities without allowing late results to update graph state.
+        statement: Map node and task timeout configuration to LangGraph timeout
+          facilities without allowing late results to update graph state.
         inputRefs:
           - INPUT-WORK-ITEM
           - INPUT-DESIGN
@@ -111,14 +118,17 @@ task:
         testCaseRefs:
           - WI-0005|10000000#test-case/TC-005
       - id: OBJ-003
-        statement: Distinguish thrown operational node failures from structured llm response failures and preserve provider-specific retry semantics at the provider boundary.
+        statement: Distinguish thrown operational node failures from structured llm
+          response failures and preserve provider-specific retry semantics at
+          the provider boundary.
         inputRefs:
           - INPUT-DESIGN
           - INPUT-TEST-STRATEGY
         testCaseRefs:
           - WI-0005|10000000#test-case/TC-005
       - id: OBJ-004
-        statement: Replace precomputed/final-state debug projection with actual LangGraph updates, debug, tasks, and custom public-port events.
+        statement: Replace precomputed/final-state debug projection with actual
+          LangGraph updates, debug, tasks, and custom public-port events.
         inputRefs:
           - INPUT-OBSERVABILITY
           - INPUT-DESIGN
@@ -138,35 +148,95 @@ task:
       - README.md
       - SKILL.md
     nonGoals:
-      - Do not retry every structured provider response with LangGraph unless the response is deliberately converted to a typed retryable node failure.
+      - Do not retry every structured provider response with LangGraph unless
+        the response is deliberately converted to a typed retryable node
+        failure.
       - Do not silently swallow LangGraph interrupt or control-flow exceptions.
-      - Do not add checkpointers, persistence, interrupt/resume, or production tracing backends.
+      - Do not add checkpointers, persistence, interrupt/resume, or production
+        tracing backends.
     steps:
-      - Add normalized retry and timeout policy fields only where the YAML contract needs them, with explicit defaults and finite bounds.
-      - Compile operational policies into StateGraph.addNode options and adapt native errors at the public result boundary.
-      - Preserve provider response validation and provider-specific retry behavior in node/llm code.
-      - Forward supported stream modes and runtime options through a documented compiled-runtime API without enabling unsupported persistence claims.
-      - Emit or derive public-port diagnostics from actual node execution events and add regression coverage for upstream/downstream values.
+      - Add normalized retry and timeout policy fields only where the YAML
+        contract needs them, with explicit defaults and finite bounds.
+      - Compile operational policies into StateGraph.addNode options and adapt
+        native errors at the public result boundary.
+      - Preserve provider response validation and provider-specific retry
+        behavior in node/llm code.
+      - Forward supported stream modes and runtime options through a documented
+        compiled-runtime API without enabling unsupported persistence claims.
+      - Emit or derive public-port diagnostics from actual node execution events
+        and add regression coverage for upstream/downstream values.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: No implementation has been performed; this task is planned and awaits the native-lowering and test-strategy tasks.
+      summary: Compiled serializable retryPolicy and timeout fields into StateGraph
+        nodes, exposed bounded stream updates, and moved graph node diagnostics
+        into actual node execution updates.
       changes:
-        - id: CHANGE-PLANNED
-          type: documentation
-          summary: Record the planned native policy and observability boundary.
+        - id: CHANGE-001
+          type: production-code
+          summary: Add graph node retryPolicy and timeout configuration and pass them to
+            StateGraph.addNode.
           objectiveRefs:
             - OBJ-001
             - OBJ-002
-            - OBJ-003
+          paths:
+            - src/graph.ts
+            - schemas/graph/v1/graph.schema.json
+        - id: CHANGE-002
+          type: production-code
+          summary: Expose CompiledGraph.stream using LangGraph stream modes without
+            enabling checkpoint persistence.
+          objectiveRefs:
             - OBJ-004
           paths:
-            - .docs/work-items/WI-0005/steps/WI-0005-30000000-runtime-policies.yaml
-      testImplementations: []
+            - src/graph.ts
+            - src/index.ts
+        - id: CHANGE-003
+          type: test-code
+          summary: Prove native retry, timeout, stream update, and actual
+            upstream/downstream debug values.
+          objectiveRefs:
+            - OBJ-001
+            - OBJ-002
+            - OBJ-004
+          paths:
+            - tests/graph.test.ts
+      testImplementations:
+        - testCaseRef: WI-0005|10000000#test-case/TC-005
+          path: tests/graph.test.ts
+          selector: graph timeout uses LangGraph native timeout policy
+        - testCaseRef: WI-0005|10000000#test-case/TC-006
+          path: tests/graph.test.ts
+          selector: compiled graphs expose LangGraph stream updates and preserve actual
+            node event values
     verification:
-      status: not-run
-      objectiveRefs: []
-      tests: []
+      status: passed
+      objectiveRefs:
+        - OBJ-001
+        - OBJ-002
+        - OBJ-003
+        - OBJ-004
+      tests:
+        - id: EXEC-001
+          type: component
+          testCaseRefs:
+            - WI-0005|10000000#test-case/TC-005
+            - WI-0005|10000000#test-case/TC-006
+          status: passed
+          result: Native retryPolicy and timeout tests passed; stream updates and actual
+            upstream/downstream graph diagnostics passed.
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - WI-0005|10000000#test-case/TC-005
+          status: passed
+          result: Graph schema and TypeScript build passed with serializable retry/timeout
+            policy fields.
     limitations:
-      - The implementation task is intentionally not started; no runtime policy or observability evidence is claimed.
-      - Checkpoint, interrupt/resume, durable side-effect, live provider, and production tracing behavior remain unimplemented and unproven.
+      - Provider-specific structured response retry remains owned by the llm
+        package and is not converted into LangGraph operational retry.
+      - Standalone control.retry and control.timeout remain public
+        semantic/result-envelope helpers; compiled graph nodes use native
+        LangGraph policies.
+      - No checkpoint persistence, interrupt/resume, durable side-effect, live
+        provider, or production tracing evidence is claimed.

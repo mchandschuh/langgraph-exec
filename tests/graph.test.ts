@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { NodeTimeoutError } from '@langchain/langgraph';
 import type { LlmRequest, LlmResponse } from 'llm';
 import { compileGraphFile, GraphDefinitionError, parseGraphDefinition } from '../src/graph.js';
 import type { GraphComponent } from '../src/graph.js';
@@ -21,6 +22,9 @@ const fakeComponents = {
   'fake.yes': component('fake.yes', async () => ({ out: 'yes-branch' })),
   'fake.no': component('fake.no', async () => ({ out: 'no-branch' })),
   'fake.upper': component('fake.upper', async (input) => ({ out: String(input.in).toUpperCase() })),
+  'fake.left': component('fake.left', async () => ({ out: 'left' }), [], ['out']),
+  'fake.right': component('fake.right', async () => ({ out: 'right' }), [], ['out']),
+  'fake.slow': component('fake.slow', async () => { await new Promise((resolve) => setTimeout(resolve, 20)); return { out: 'late' }; }, [], ['out']),
 };
 
 const completionService = async (request: LlmRequest): Promise<LlmResponse> => ({
@@ -109,4 +113,15 @@ test('graph node retryPolicy is executed by LangGraph for operational failures',
   });
   assert.deepEqual(await graph.invoke({ message: 'retry' }), { result: 'retry-recovered-second' });
   assert.equal(attempts, 2);
+});
+
+test('static parallel branches use LangGraph supersteps and reducers', async () => {
+  const graph = await compileGraphFile(graphFixture('parallel-dag.yml'), { components: fakeComponents });
+  const result = await graph.invoke({});
+  assert.deepEqual(new Set(result.values as string[]), new Set(['left', 'right']));
+});
+
+test('graph timeout uses LangGraph native timeout policy', async () => {
+  const graph = await compileGraphFile(graphFixture('timeout-dag.yml'), { components: fakeComponents });
+  await assert.rejects(() => graph.invoke({}), NodeTimeoutError);
 });

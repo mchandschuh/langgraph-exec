@@ -1,0 +1,29 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: timeout-dag
+imports: []
+state:
+  fields:
+    result:
+      type: string
+      reducer: replace
+ports:
+  inputs: {}
+  outputs:
+    result:
+      state: result
+      type: string
+      required: true
+nodes:
+  - id: slow
+    component: fake.slow
+    timeout: 1
+bindings:
+  - from: node.slow.out
+    to: output.result
+edges:
+  - from: __start__
+    to: slow
+  - from: slow
+    to: __end__
+routes: []

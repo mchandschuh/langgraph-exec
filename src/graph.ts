@@ -157,7 +157,7 @@ function buildCompiledGraph(graph: GraphDefinition, components: Readonly<Record<
         if (source?.node !== node.id) continue;
         const value = result[source.port];
         update[internalOutputKey(source.node, source.port)] = value;
-        if (binding.to.startsWith('output.')) update[graph.ports.outputs[binding.to.slice(7)].state] = value;
+        if (binding.to.startsWith('output.')) update[graph.ports.outputs[binding.to.slice(7)].state] = graph.state[graph.ports.outputs[binding.to.slice(7)].state].reducer === 'append' ? [value] : value;
         else if (binding.to.startsWith('state.')) update[binding.to.slice(6)] = value;
       }
       events.push({ event: 'graph.node.output', data: { graph: graph.name, node: node.id, component: node.component, ports: result } });

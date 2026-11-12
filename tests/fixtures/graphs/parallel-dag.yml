@@ -1,0 +1,36 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/graph/v1
+kind: graph
+name: parallel-dag
+imports: []
+state:
+  fields:
+    values:
+      type: array
+      reducer: append
+ports:
+  inputs: {}
+  outputs:
+    values:
+      state: values
+      type: array
+      required: true
+nodes:
+  - id: left
+    component: fake.left
+  - id: right
+    component: fake.right
+bindings:
+  - from: node.left.out
+    to: output.values
+  - from: node.right.out
+    to: output.values
+edges:
+  - from: __start__
+    to: left
+  - from: __start__
+    to: right
+  - from: left
+    to: __end__
+  - from: right
+    to: __end__
+routes: []

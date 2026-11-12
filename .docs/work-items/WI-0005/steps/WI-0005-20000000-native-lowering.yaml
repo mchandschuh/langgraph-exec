@@ -1,0 +1,160 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-20000000
+orderKey: "20000000"
+parentTaskUid: WI-0005-00000000
+taskType: implementation
+processingStatus: unprocessed
+title: Lower declarative control flow into native LangGraph graphs (WI-0005)
+objective: Replace manual loop, parallel, map, join, and switch execution with LangGraph graph primitives while preserving repository-specific bounded contracts.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/README.md
+    - .docs/work-items/WI-0005/steps/WI-0005-00000000-design.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-10000000-test-strategy.yaml
+    - src/graph.ts
+    - src/loop.ts
+    - src/controls.ts
+    - tests/graph.test.ts
+    - tests/loop.test.ts
+    - tests/control.test.ts
+  informational:
+    - node_modules/@langchain/langgraph/dist/graph/state.d.ts
+    - node_modules/@langchain/langgraph/dist/constants.d.ts
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/graph.ts
+    - src/loop.ts
+    - src/controls.ts
+    - src/index.ts
+    - tests/graph.test.ts
+    - tests/loop.test.ts
+    - tests/control.test.ts
+    - tests/fixtures/graphs/
+    - tests/fixtures/loops/
+    - .docs/work-items/WI-0005/
+  commitSubject: "WI-0005: 03: lower control flow through LangGraph"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0005-10000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Lower validated YAML control flow into StateGraph cycles, edges, conditional edges, Send fan-out, and reducer channels instead of executing a second manual orchestration runtime.
+    changeTypes:
+      - production-code
+      - test-code
+      - schema
+      - documentation
+    changeIntent: refactor
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: constraint
+        ref: sdlc://repo/local%2Fgithub%2Flanggraph-exec/WI-0005#work-item.json%23requirement/WI-0005_REQ_002
+        purpose: Native graph control-flow requirement.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0005|00000000#outcome/O-001
+        purpose: Responsibility allocation and compatibility design.
+        required: true
+      - id: INPUT-TEST-STRATEGY
+        kind: task
+        ref: WI-0005|10000000#result/R-001
+        purpose: Required test cases for native lowering.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Compile bounded loops into StateGraph conditional cycles with explicit semantic counters, maxSteps accounting, exhaustion routes, and recursion safety.
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-DESIGN
+          - INPUT-TEST-STRATEGY
+        testCaseRefs:
+          - WI-0005|10000000#test-case/TC-002
+      - id: OBJ-002
+        statement: Compile static parallel branches and joins into graph edges and reducer channels while retaining branch limits and replace-conflict validation.
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-DESIGN
+          - INPUT-TEST-STRATEGY
+        testCaseRefs:
+          - WI-0005|10000000#test-case/TC-003
+      - id: OBJ-003
+        statement: Compile dynamic map work into bounded Send fan-out and reducer-based aggregation while preserving explicit item limits and public result ordering.
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-DESIGN
+          - INPUT-TEST-STRATEGY
+        testCaseRefs:
+          - WI-0005|10000000#test-case/TC-004
+      - id: OBJ-004
+        statement: Use addConditionalEdges for switch routing and preserve nested public-port isolation without a second runtime route evaluator.
+        inputRefs:
+          - INPUT-DESIGN
+          - INPUT-TEST-STRATEGY
+        testCaseRefs:
+          - WI-0005|10000000#test-case/TC-001
+          - WI-0005|10000000#test-case/TC-003
+    ownedPaths:
+      - src/graph.ts
+      - src/loop.ts
+      - src/controls.ts
+      - src/index.ts
+      - tests/graph.test.ts
+      - tests/loop.test.ts
+      - tests/control.test.ts
+      - tests/fixtures/graphs/
+      - tests/fixtures/loops/
+    nonGoals:
+      - Do not remove YAML validation, trusted imports, public ports, nested state isolation, or provider boundaries.
+      - Do not implement checkpoint persistence, interrupt/resume, or durable side-effect recovery.
+      - Do not allow unbounded Send expansion or arbitrary YAML executable code.
+    steps:
+      - Extend normalized graph IR and compiler-generated state channels for semantic loop counters, step budgets, branch results, map results, and route state.
+      - Replace the manual loop invoke path with a compiled StateGraph cycle and conditional exit/re-entry transitions.
+      - Lower static parallel branches and joins to graph edges and reducers; lower dynamic map expansion to bounded Send work.
+      - Keep control helpers only for compiler validation, result-envelope adaptation, or semantics not represented by LangGraph, and remove duplicate runtime scheduling.
+      - Update fixtures, tests, inspection output, and documentation for the native execution path.
+  result:
+    status: blocked
+    implementation:
+      summary: No implementation has been performed; this task is planned and awaits the completed design and test-strategy tasks.
+      changes:
+        - id: CHANGE-PLANNED
+          type: documentation
+          summary: Record the planned native graph-lowering boundary and required regression coverage.
+          objectiveRefs:
+            - OBJ-001
+            - OBJ-002
+            - OBJ-003
+            - OBJ-004
+          paths:
+            - .docs/work-items/WI-0005/steps/WI-0005-20000000-native-lowering.yaml
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: []
+      tests: []
+    limitations:
+      - The implementation task is intentionally not started; no production behavior or test evidence is claimed.
+      - Native lowering must not be considered complete until the test-strategy task and implementation verification pass.

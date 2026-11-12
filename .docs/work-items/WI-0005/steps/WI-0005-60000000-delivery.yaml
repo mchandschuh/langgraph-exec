@@ -1,0 +1,120 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-60000000
+orderKey: "60000000"
+parentTaskUid: WI-0005-00000000
+taskType: delivery
+processingStatus: unprocessed
+title: Deliver the locally verified LangGraph alignment package (WI-0005)
+objective: Build and locally link the completed WI-0005 package after validation and review gates pass.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/steps/WI-0005-40000000-validation.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-50000000-review.yaml
+    - package.json
+    - README.md
+    - SKILL.md
+  informational: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0005/
+    - dist/
+    - package.json
+    - README.md
+    - SKILL.md
+    - scripts/
+    - bin/
+  commitSubject: "WI-0005: 07: deliver LangGraph alignment package"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0005-50000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: Build, locally link, and smoke-test the validated WI-0005 package without claiming registry publication, production deployment, live provider behavior, or persistence.
+    deliveryTypes:
+      - package
+      - release
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0005|40000000#result/R-001
+        purpose: Required validation result.
+        required: true
+      - id: INPUT-REVIEW
+        kind: taskResult
+        ref: WI-0005|50000000#result/R-001
+        purpose: Required review result.
+        required: true
+    artifacts:
+      - id: ART-001
+        kind: package
+        path: dist/
+        purpose: Built package output.
+        required: true
+      - id: ART-002
+        kind: link
+        path: package.json
+        purpose: User-local npm-linked package registration.
+        required: true
+    procedures:
+      - id: PROC-001
+        sequence: 1
+        name: build-link-smoke
+        description: Build, link, and verify the local package and CLI.
+        steps:
+          - Confirm validation and review gates are complete and current.
+          - Run yarn typecheck, yarn test, and yarn build.
+          - Link the package through the user-local npm prefix.
+          - Verify command discovery, help, version, and provider-free inspection.
+        command: yarn typecheck && yarn test && yarn build && npm --prefix "$HOME/.local" link /home/michael/src/github/langgraph-exec
+        expected:
+          result: The package builds, links locally, and the CLI smoke checks succeed.
+        required: true
+    nonGoals:
+      - Do not publish to a registry.
+      - Do not deploy to production.
+      - Do not claim live provider, checkpoint, interrupt/resume, or durable side-effect behavior.
+  result:
+    status: blocked
+    summary: Delivery is planned but cannot run until validation and review tasks pass.
+    artifacts:
+      - id: ART-NOT-PRODUCED
+        kind: package
+        path: dist/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-LINK-NOT-PRODUCED
+        kind: link
+        path: package.json
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executions:
+      - id: EXEC-NOT-RUN
+        procedureRef: '#procedure/PROC-001'
+        result:
+          status: blocked
+          summary: The delivery procedure has not run because implementation, validation, and review are pending.
+          assertions:
+            - The listed checks are planned only and do not constitute delivery evidence.
+        command: yarn typecheck && yarn test && yarn build && npm --prefix "$HOME/.local" link /home/michael/src/github/langgraph-exec
+    limitations:
+      - The artifact checksums are explicit not-produced placeholders, not captured package checksums.
+      - This result does not claim package delivery, registry publication, deployment, provider availability, persistence, or production readiness.

@@ -1,0 +1,154 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-50000000
+orderKey: "50000000"
+parentTaskUid: WI-0005-00000000
+taskType: review
+processingStatus: unprocessed
+title: Review LangGraph built-in alignment evidence boundary (WI-0005)
+objective: Review the completed implementation and validation results for scope, correctness, native feature usage, and evidence limitations.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/README.md
+    - .docs/work-items/WI-0005/steps/WI-0005-40000000-validation.yaml
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0005/
+    - src/
+    - tests/
+    - samples/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0005: 06: review LangGraph built-in alignment"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0005-40000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether WI-0005 removes duplicated LangGraph runtime behavior without weakening the YAML compiler, provider boundary, bounded budgets, public API, or evidence limitations.
+    reviewKind: code
+    target:
+      taskType: validation
+      taskRef: WI-0005|40000000
+      result:
+        ref: WI-0005|40000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: implementation-result
+    policyRef:
+      ref: .docs/sdlc/review-policy
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: The implementation remains within WI-0005 scope and preserves the custom DSL and provider boundaries.
+        purpose: Prevent runtime refactoring from removing application-specific trust and composition guarantees.
+        required: true
+        evidenceRefs:
+          - WI-0005|40000000#result/R-001
+      - id: CRIT-002
+        statement: Applicable graph scheduling, reducers, fan-out, retry, timeout, and observability behavior is delegated to LangGraph rather than duplicated.
+        purpose: Confirm the stated architectural objective is achieved.
+        required: true
+        evidenceRefs:
+          - WI-0005|40000000#result/R-001
+      - id: CRIT-003
+        statement: Evidence is deterministic and does not overclaim provider, persistence, interrupt/resume, deployment, or production behavior.
+        purpose: Keep review conclusions within the actual evidence tier.
+        required: true
+        evidenceRefs:
+          - WI-0005|40000000#result/R-001
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0005|40000000#result/R-001
+        purpose: Required validation result for native lowering and runtime policies.
+        required: true
+        minimumTier: cli-audit
+      - id: EVID-002
+        kind: repository-state
+        ref: '#repository-state/HEAD'
+        purpose: Confirm changed paths and forbidden-file inspection.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: Do not approve persistence or interrupt/resume because they are out of scope.
+      - id: NON-002
+        statement: Do not approve production deployment or live provider readiness.
+    context:
+      - id: CTX-001
+        kind: contract
+        ref: .docs/work-items/WI-0005/work-item.json
+        purpose: Authoritative scope and non-goals.
+        required: true
+      - id: CTX-002
+        kind: prior-review
+        ref: README.md
+        purpose: Repository architecture and release-boundary context.
+        required: true
+  result:
+    status: inconclusive
+    decision: abstained
+    summary: The review is planned but cannot reach a decision until implementation and validation results exist.
+    actor:
+      id: pending-reviewer
+      role: implementation-reviewer
+      authorityRef: .docs/work-items/WI-0005/work-item.json
+    criteriaEvaluations:
+      - criterionRef: '#criterion/CRIT-001'
+        status: inconclusive
+        summary: No completed implementation result is available.
+        evidenceRefs: []
+        findingRefs: []
+      - criterionRef: '#criterion/CRIT-002'
+        status: inconclusive
+        summary: Native LangGraph delegation has not yet been validated.
+        evidenceRefs: []
+        findingRefs: []
+      - criterionRef: '#criterion/CRIT-003'
+        status: inconclusive
+        summary: The evidence boundary is defined but no release evidence has been collected.
+        evidenceRefs: []
+        findingRefs: []
+    findings: []
+    evidence: []
+    limitations:
+      - This is a planning record and no implementation review has been executed.
+      - The placeholder target digest is not approval evidence.
+    nonClaims:
+      - This result does not claim acceptance.
+      - This result does not claim implementation, validation, persistence, interrupt/resume, or production readiness.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-NOT-RUN
+      status: aborted
+      startedAt: 2026-11-12T00:00:00Z
+      finishedAt: 2026-11-12T00:00:00Z

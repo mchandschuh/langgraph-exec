@@ -1,0 +1,372 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: unprocessed
+title: Define the LangGraph built-in alignment architecture (WI-0005)
+objective: Define the target execution architecture and compatibility policy for WI-0005.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/README.md
+    - README.md
+    - package.json
+    - SKILL.md
+    - src/graph.ts
+    - src/loop.ts
+    - src/controls.ts
+  informational:
+    - node_modules/@langchain/langgraph/dist/graph/state.d.ts
+    - node_modules/@langchain/langgraph/dist/graph/graph.d.ts
+    - node_modules/@langchain/langgraph/dist/pregel/utils/index.d.ts
+    - node_modules/@langchain/langgraph/dist/interrupt.d.ts
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0005/
+  commitSubject: "WI-0005: 01: design LangGraph built-in alignment"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn: []
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define how the YAML compiler remains application-specific while LangGraph owns graph scheduling, state transitions, native control flow, operational policies, and runtime observability.
+    objectives:
+      - Allocate responsibilities between the YAML compiler, provider boundary, and LangGraph runtime.
+      - Define compatibility rules for loop budgets, branch limits, response-status retries, timeouts, nested components, and debug output.
+      - Define a runtime API boundary that preserves invoke behavior and leaves a safe extension point for future stream and checkpointer support.
+    inScope:
+      - StateGraph lowering for loops, routes, static fan-out/fan-in, and dynamic map work.
+      - LangGraph retryPolicy, timeout, reducers, Send, stream modes, and task/debug events.
+      - Public-port behavior, nested-component isolation, bounded semantic budgets, and migration tests.
+    outOfScope:
+      - Checkpoint persistence, interrupt/resume, human approval, durable side-effect receipts, live providers, and deployment.
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets:
+      - structure
+      - contract
+      - behavior
+    references:
+      - id: REF-001
+        type: document
+        locator: README.md
+        description: Repository architecture, phase boundaries, and release limitations relevant to WI-0005.
+      - id: REF-002
+        type: repositoryPath
+        locator: src/graph.ts
+        description: Current StateGraph lowering and custom graph diagnostics.
+      - id: REF-003
+        type: repositoryPath
+        locator: src/loop.ts
+        description: Current manual bounded-loop runtime.
+      - id: REF-004
+        type: repositoryPath
+        locator: src/controls.ts
+        description: Current manual parallel, map, retry, timeout, and routing helpers.
+      - id: REF-005
+        type: url
+        locator: https://langchain-ai.github.io/langgraphjs/reference/classes/langgraph.StateGraph.html
+        description: Installed StateGraph node policy and graph construction APIs.
+      - id: REF-006
+        type: url
+        locator: https://langchain-ai.github.io/langgraphjs/reference/classes/langgraph.Pregel.html
+        description: Installed RetryPolicy and CachePolicy declarations.
+    provenance:
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
+        - REF-004
+        - REF-005
+        - REF-006
+      basis: The repository implementation and installed LangGraph 1.7.3 declarations were compared before defining the target allocation.
+      confidence: 96
+    considerations:
+      - id: C-001
+        kind: boundary
+        statement: YAML schemas, trusted imports, public ports, and provider request/response contracts remain repository-owned.
+        evaluation: Accepted; LangGraph does not provide these application-specific trust and DSL boundaries.
+        referenceRefs:
+          - REF-001
+          - REF-002
+        status: accepted
+        impact: 95
+        confidence: 98
+      - id: C-002
+        kind: constraint
+        statement: maxIterations and maxSteps are semantic workflow budgets and are not interchangeable with LangGraph recursionLimit.
+        evaluation: Accepted; compile explicit budget state and use recursionLimit only as an additional runtime safety ceiling.
+        referenceRefs:
+          - REF-001
+          - REF-003
+        status: accepted
+        impact: 92
+        confidence: 95
+      - id: C-003
+        kind: risk
+        statement: Replacing Promise.race timeout behavior with native node timeout may change public error envelopes.
+        evaluation: Require an adapter that maps native timeout errors to the existing bounded status without suppressing runtime failure semantics.
+        referenceRefs:
+          - REF-004
+          - REF-005
+        status: accepted
+        impact: 82
+        confidence: 90
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Compare each custom control helper with the closest LangGraph primitive.
+        status: planned
+        referenceRefs:
+          - REF-002
+          - REF-003
+          - REF-004
+        provenance:
+          referenceRefs:
+            - REF-002
+            - REF-003
+            - REF-004
+          basis: The review identified distinct runtime duplication and valid DSL-specific behavior.
+          confidence: 96
+      - id: ACT-002
+        type: decision
+        summary: Record which response failures remain provider-owned and which operational failures move to LangGraph policies.
+        status: planned
+        referenceRefs:
+          - REF-004
+          - REF-006
+        provenance:
+          referenceRefs:
+            - REF-004
+            - REF-006
+          basis: Provider response envelopes and LangGraph retry policies have different failure contracts.
+          confidence: 94
+  result:
+    summary: The design is intentionally pending implementation and will define a single LangGraph-backed execution path without removing the repository DSL boundary.
+    model:
+      name: langgraph-built-in-alignment
+      kind: architecture
+      description: Responsibility allocation between YAML compilation, registered components, provider services, and LangGraph runtime capabilities.
+      notation: custom
+      version: "1"
+    elements:
+      - id: E-001
+        type: compiler
+        name: yaml-compiler
+        description: Parses and validates versioned YAML, trusted imports, public ports, semantic budgets, and registered component references.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: These responsibilities are application-specific and remain in the repository.
+          confidence: 98
+      - id: E-002
+        type: runtime
+        name: langgraph-runtime
+        description: Executes compiled StateGraph nodes, state channels, reducers, edges, cycles, fan-out, retries, timeouts, and runtime streams.
+        provenance:
+          referenceRefs:
+            - REF-005
+            - REF-006
+          basis: Installed LangGraph APIs already provide these execution capabilities.
+          confidence: 96
+      - id: E-003
+        type: provider-boundary
+        name: llm-service
+        description: Owns provider requests, structured output validation, and provider-specific response retry semantics.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+          basis: The repository explicitly delegates provider behavior to the injected llm package.
+          confidence: 98
+      - id: E-004
+        type: runtime-adapter
+        name: compiled-runtime-api
+        description: Preserves the public invoke contract and forwards supported LangGraph stream/runtime options without claiming persistence.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-005
+          basis: The current CompiledGraph wrapper hides useful runtime capabilities and needs a bounded adapter boundary.
+          confidence: 92
+    relations:
+      - id: REL-001
+        type: compiles-to
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-002
+        description: The YAML compiler lowers validated definitions into LangGraph StateGraph runtime structures.
+        provenance:
+          referenceRefs:
+            - REF-002
+            - REF-005
+          basis: Existing graph lowering already follows this direction and will be extended for native control flow.
+          confidence: 97
+      - id: REL-002
+        type: invokes
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-003
+        description: Compiled graph nodes invoke registered components and the provider boundary where selected.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+          basis: Registered components remain the only executable implementation boundary.
+          confidence: 96
+      - id: REL-003
+        type: exposes
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-004
+        description: The runtime adapter exposes bounded invoke and supported stream behavior to library and CLI callers.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-005
+          basis: Runtime capability forwarding is required without exposing unsupported persistence claims.
+          confidence: 90
+    views:
+      - id: V-001
+        type: responsibility-allocation
+        name: execution-responsibility-allocation
+        description: Shows compiler, LangGraph runtime, provider boundary, and public runtime adapter responsibilities.
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-004
+            - REF-005
+          basis: The view makes the no-duplication boundary explicit.
+          confidence: 95
+    artifacts:
+      - id: A-001
+        type: document
+        name: implementation-contract
+        description: The design and test-strategy records for WI-0005.
+        locator: .docs/work-items/WI-0005/
+        status: proposed
+        provenance:
+          referenceRefs:
+            - REF-001
+          basis: The work-item artifacts are the authoritative implementation handoff.
+          confidence: 98
+    outcomes:
+      - id: O-001
+        type: implementationHandoff
+        statement: Implement one LangGraph-backed runtime path while preserving repository-specific compiler and provider boundaries.
+        status: proposed
+        impact: 98
+        confidence: 94
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+        artifactRefs:
+          - A-001
+        suggestedTaskType: implementation
+    outputs:
+      - id: OUT-001
+        category: responsibility-allocation
+        status: proposed
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-004
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+        description: Defines the boundary between custom DSL/provider behavior and LangGraph runtime behavior.
+      - id: OUT-002
+        category: verification-obligation
+        status: proposed
+        sourceRefs:
+          - REF-001
+          - REF-005
+        verificationRefs:
+          - VER-001
+        description: Requires provider-free tests for native lowering, operational policies, accurate observability, and compatibility.
+    verificationObligations:
+      - id: VER-001
+        kind: component-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+        method:
+          type: component-test
+          steps:
+            - Execute deterministic fake components through compiled StateGraph paths.
+            - Assert native routing, reducers, retry/timeout policies, stream events, and bounded public results.
+        requiredFor:
+          - implementable
+        description: The implementation must demonstrate that native LangGraph capabilities replace duplicated runtime orchestration without weakening DSL contracts.
+    unresolvedQuestions:
+      - id: Q-001
+        question: Which future checkpointer implementation and retention policy should be supported by the runtime adapter?
+        reason: Persistence is explicitly out of scope for WI-0005 and requires a separate durable execution contract.
+        status: deferred
+        impact: 70
+        confidence: 98
+        referenceRefs:
+          - REF-001
+        suggestedTaskType: design

@@ -1,0 +1,185 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0005",
+  "status": "planned",
+  "title": "Align execution with LangGraph built-in capabilities",
+  "type": "refactor",
+  "objective": "Refactor langgraph-exec so its YAML compiler and application-specific policy layer use LangGraph's tested runtime capabilities instead of duplicating graph scheduling, looping, retry, timeout, fan-out, fan-in, and execution observability behavior.",
+  "repository": {
+    "root": "/home/michael/src/github/langgraph-exec",
+    "authority": "github"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "main"
+    },
+    "branch": {
+      "name": "wi-0005-langgraph-builtins",
+      "created": false,
+      "rationale": "The work changes execution architecture and runtime API boundaries while preserving the YAML DSL and provider contracts."
+    }
+  },
+  "baseline": "979577ed7ded2e86505a626b2a10198f2ad8094e",
+  "request": {
+    "source": "conversation",
+    "text": "Write a new .docs/work-items/* to address the LangGraph built-in feature alignment review: remove duplicated runtime behavior where applicable and lean on built-in, well-tested LangGraph components.",
+    "sha256": "7c4f2f75fca113b8c1d178065696da628bd8b2042543211e5a1683e7dfb5f079"
+  },
+  "scope": [
+    {
+      "name": "native-graph-lowering",
+      "description": "Lower bounded loops, static parallel branches, dynamic maps, joins, and switch routing into StateGraph cycles, edges, conditional edges, Send, and reducer channels where semantics match.",
+      "reason": "LangGraph should own graph scheduling and state transition semantics rather than a parallel custom execution runtime."
+    },
+    {
+      "name": "native-runtime-policies",
+      "description": "Map operational retry and timeout configuration to LangGraph node policies while retaining provider-specific structured response handling where required.",
+      "reason": "LangGraph provides tested retry classification, backoff, timeout, and task execution behavior."
+    },
+    {
+      "name": "runtime-observability",
+      "description": "Replace inaccurate precomputed graph debug events with LangGraph stream/task/debug updates and preserve only accurate DSL-specific projections.",
+      "reason": "Execution diagnostics must describe actual node inputs, outputs, routes, and failures."
+    },
+    {
+      "name": "runtime-api-boundary",
+      "description": "Preserve the current invoke contract while designing an optional runtime forwarding boundary for stream and future checkpointer support without claiming persistence.",
+      "reason": "The current wrapper hides useful LangGraph runtime capabilities and makes future persistence/resume adoption require another redesign."
+    },
+    {
+      "name": "compatibility-and-tests",
+      "description": "Document semantic differences, preserve public-port and bounded-budget behavior, add provider-free regression coverage, and verify the package release gates.",
+      "reason": "Replacing custom orchestration can change failure, ordering, retry, timeout, and inspection behavior unless explicitly tested."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "dsl-replacement",
+      "description": "Do not remove YAML schemas, trusted imports, digest checks, public ports, nested-component encapsulation, or registered implementation restrictions.",
+      "reason": "These are application-specific compiler and trust-boundary responsibilities that LangGraph does not provide.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "persistence-and-human-control",
+      "description": "Do not implement checkpoint persistence, interrupt/resume, Command-based human approval, or durable side-effect receipts in this work item.",
+      "reason": "Those capabilities require a separate persistence and human-control contract with replay and side-effect evidence.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "live-provider-release",
+      "description": "Do not require authenticated live provider calls or production deployment evidence.",
+      "reason": "Fake components and injected completion services provide deterministic evidence for this refactor.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0005_REQ_001",
+        "name": "preserve-dsl-boundary",
+        "description": "The refactor must preserve YAML validation, trusted imports, public ports, nested-component encapsulation, registered implementations, and the llm provider boundary.",
+        "reason": "LangGraph runtime adoption must not remove application-specific trust and composition guarantees.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0005_REQ_001_AC_001",
+            "description": "Existing node, graph, nested-component, import-security, and provider-free validation tests continue to pass, or any intentional contract change has an explicit schema/version migration and regression test."
+          }
+        ]
+      },
+      {
+        "id": "WI-0005_REQ_002",
+        "name": "native-control-flow",
+        "description": "Graph loops, static parallel branches, dynamic maps, joins, and switch routes must use LangGraph graph primitives rather than separate runtime traversal where applicable.",
+        "reason": "LangGraph should own scheduling, supersteps, conditional transitions, fan-out, and reducer-based aggregation.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0005_REQ_002_AC_001",
+            "description": "Provider-free tests demonstrate bounded loop cycles, static fan-out/fan-in, dynamic map work, reducer joins, and conditional routing through a compiled StateGraph."
+          }
+        ]
+      },
+      {
+        "id": "WI-0005_REQ_003",
+        "name": "native-operational-policies",
+        "description": "Operational node retry and timeout behavior must use LangGraph retryPolicy and timeout facilities when their semantics match the repository contract.",
+        "reason": "The built-in policies provide standardized retry classification, backoff, timeout errors, and runtime integration.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0005_REQ_003_AC_001",
+            "description": "Tests prove finite retry attempts, retry classification, timeout behavior, and no late state update, while provider-specific structured response retries remain at the correct provider boundary."
+          }
+        ]
+      },
+      {
+        "id": "WI-0005_REQ_004",
+        "name": "accurate-observability",
+        "description": "Execution diagnostics must be derived from actual LangGraph runtime events rather than precomputed inputs or final-state projections.",
+        "reason": "Debug output is part of the operational contract and must not report inaccurate node data.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0005_REQ_004_AC_001",
+            "description": "Tests show that node, route, update, task, and public-port diagnostics correspond to the actual execution order and values."
+          }
+        ]
+      },
+      {
+        "id": "WI-0005_REQ_005",
+        "name": "bounded-runtime-api",
+        "description": "The compiled runtime boundary must preserve invoke behavior and define a safe path for LangGraph stream/runtime options without falsely claiming persistence or resume.",
+        "reason": "Callers should not be forced through a wrapper that discards useful built-in runtime capabilities.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0005_REQ_005_AC_001",
+            "description": "The public API documents the supported invoke/stream surface, preserves current CLI behavior, and explicitly reports persistence and interrupt/resume as unavailable until a later work item."
+          }
+        ]
+      },
+      {
+        "id": "WI-0005_REQ_006",
+        "name": "release-evidence",
+        "description": "The refactor must have deterministic test, typecheck, build, diff, and local CLI evidence with explicit limitations.",
+        "reason": "The change affects execution architecture and requires evidence beyond isolated helper tests.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0005_REQ_006_AC_001",
+            "description": "The complete provider-free suite, typecheck, build, CLI smoke checks, and repository diff checks pass, with no claim of live provider, persistence, or production readiness."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0005/steps/"
+}

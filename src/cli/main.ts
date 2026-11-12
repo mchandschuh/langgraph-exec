@@ -78,7 +78,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
       }
       const component = await loadComponent(args[1]);
       const inspected = 'inspect' in component ? component.inspect : inspectNode(component);
-      if (args.includes('--resolved')) inspected.resolution = { defaultsAppliedAtExecution: true, providerAccess: 'none' };
+      if (args.includes('--resolved')) inspected.resolution = { ...(inspected.resolution as Record<string, unknown> | undefined), defaultsAppliedAtExecution: true, providerAccess: 'none' };
       console.log(JSON.stringify(inspected, null, 2));
       return 0;
     }

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/langgraph-exec/sample/two-llm-conversation/output/v1",
+  "title": "Two LLM conversation response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "speaker",
+    "round",
+    "message"
+  ],
+  "properties": {
+    "speaker": {
+      "enum": [
+        "alpha",
+        "beta"
+      ]
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    }
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/langgraph-exec/sample/two-llm-conversation/task/v1",
+  "title": "Two LLM conversation task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "conversationId",
+    "openingMessage",
+    "round",
+    "speaker",
+    "conversation",
+    "instruction"
+  ],
+  "properties": {
+    "conversationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "openingMessage": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "speaker": {
+      "enum": [
+        "alpha",
+        "beta"
+      ]
+    },
+    "conversation": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/successTurn"
+          },
+          {
+            "$ref": "#/$defs/failureTurn"
+          }
+        ]
+      }
+    },
+    "instruction": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    }
+  },
+  "$defs": {
+    "turnBase": {
+      "type": "object",
+      "properties": {
+        "round": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "speaker": {
+          "enum": [
+            "alpha",
+            "beta"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "successTurn": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/turnBase"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "round",
+            "speaker",
+            "status",
+            "message"
+          ],
+          "properties": {
+            "round": {},
+            "speaker": {},
+            "status": {
+              "const": "success"
+            },
+            "message": {}
+          }
+        }
+      ]
+    },
+    "failureTurn": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/turnBase"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "round",
+            "speaker",
+            "status",
+            "message",
+            "error"
+          ],
+          "properties": {
+            "round": {},
+            "speaker": {},
+            "status": {
+              "const": "failure"
+            },
+            "message": {},
+            "error": {
+              "$ref": "#/$defs/error"
+            }
+          }
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "status",
+        "attempts",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+          "maxLength": 64
+        },
+        "status": {
+          "enum": [
+            "input_invalid",
+            "configuration_error",
+            "provider_error",
+            "output_invalid",
+            "attempts_exhausted"
+          ]
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    }
+  }
+}

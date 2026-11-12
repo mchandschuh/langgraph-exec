@@ -1,0 +1,54 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/node/v1
+kind: node
+name: sample-conversation-beta
+implementation: llm.complete
+parameters:
+  provider:
+    type: string
+    default: openrouter
+  model:
+    type: string
+    default: anthropic/claude-sonnet-4
+  thinking:
+    type: string
+    default: medium
+  maxFailedAttempts:
+    type: integer
+    default: 0
+  maxIterations:
+    type: integer
+    default: 1
+  taskSchema:
+    type: object
+    required: true
+  outputSchema:
+    type: object
+    required: true
+  systemPrompt:
+    type: string
+    default: |
+      You are Beta, the second of two language models in a bounded conversation.
+      Alpha is the first language model and your conversation partner. Read the
+      complete conversation supplied in the task, respond as Beta, address
+      Alpha's latest contribution, and challenge or refine one concrete idea.
+      Return only JSON that satisfies outputSchema. Do not claim to be a human
+      or speak for Alpha.
+ports:
+  inputs:
+    task:
+      type: object
+      required: true
+  outputs:
+    response:
+      type: object
+      required: true
+bindings:
+  provider: parameter.provider
+  model: parameter.model
+  thinking: parameter.thinking
+  maxFailedAttempts: parameter.maxFailedAttempts
+  maxIterations: parameter.maxIterations
+  task: input.task
+  systemPrompt: parameter.systemPrompt
+  taskSchema: parameter.taskSchema
+  outputSchema: parameter.outputSchema

@@ -6,11 +6,11 @@ export const NODE_SCHEMA = 'https://schemas.handschuh.dev/langgraph-exec/node/v1
 export const NODE_IMPLEMENTATION = 'llm.complete' as const;
 
 type Primitive = boolean | number | string;
-export type ParameterType = 'string' | 'number' | 'integer' | 'boolean';
+export type ParameterType = 'string' | 'number' | 'integer' | 'boolean' | 'object';
 
 export interface ParameterDefinition {
   readonly type: ParameterType;
-  readonly default?: Primitive;
+  readonly default?: Primitive | Readonly<Record<string, unknown>>;
   readonly required?: boolean;
 }
 
@@ -67,7 +67,7 @@ const REQUEST_FIELDS = [
 
 type RequestField = (typeof REQUEST_FIELDS)[number];
 
-const PARAMETER_TYPES = new Set<ParameterType>(['string', 'number', 'integer', 'boolean']);
+const PARAMETER_TYPES = new Set<ParameterType>(['string', 'number', 'integer', 'boolean', 'object']);
 const THINKING_VALUES = new Set<Thinking>(['minimal', 'low', 'medium', 'high', 'xhigh']);
 const IDENTIFIER = /^[A-Za-z][A-Za-z0-9._-]*$/;
 const PROVIDER = /^[A-Za-z][A-Za-z0-9._-]*$/;
@@ -105,9 +105,10 @@ function assertBoolean(value: unknown, path: string): boolean {
   return value;
 }
 
-function assertParameterValue(value: unknown, type: ParameterType, path: string): Primitive {
+function assertParameterValue(value: unknown, type: ParameterType, path: string): Primitive | Readonly<Record<string, unknown>> {
   if (type === 'string') return assertString(value, path, false);
   if (type === 'boolean') return assertBoolean(value, path);
+  if (type === 'object') return assertRecord(value, path);
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     throw new NodeDefinitionError(`${path} must be a finite number.`);
   }
@@ -209,13 +210,13 @@ function valueAtPath(record: Readonly<Record<string, unknown>>, path: string): u
   return value;
 }
 
-function resolveParameters(definition: NodeDefinition, input: NodeInput): Record<string, Primitive> {
+function resolveParameters(definition: NodeDefinition, input: NodeInput): Record<string, Primitive | Readonly<Record<string, unknown>>> {
   const overrides = input.parameters ?? {};
   if (!isRecord(overrides)) throw new NodeDefinitionError('input.parameters must be an object.');
   for (const name of Object.keys(overrides)) {
     if (!own(definition.parameters, name)) throw new NodeDefinitionError(`input.parameters.${name} is not declared by the node.`);
   }
-  const resolved: Record<string, Primitive> = {};
+  const resolved: Record<string, Primitive | Readonly<Record<string, unknown>>> = {};
   for (const [name, parameter] of Object.entries(definition.parameters)) {
     const value = own(overrides, name) ? overrides[name] : parameter.default;
     if (value === undefined) {
@@ -228,8 +229,12 @@ function resolveParameters(definition: NodeDefinition, input: NodeInput): Record
 }
 
 function validateRequestValue(field: RequestField, value: unknown): void {
-  if (field === 'task' || field === 'systemPrompt' || field === 'provider' || field === 'model' || field === 'taskSchema' || field === 'outputSchema') {
+  if (field === 'systemPrompt' || field === 'provider' || field === 'model') {
     assertString(value, `resolved request.${field}`);
+  } else if (field === 'task') {
+    if (typeof value !== 'string' && !isRecord(value)) throw new NodeDefinitionError('resolved request.task must be a string or object.');
+  } else if (field === 'taskSchema' || field === 'outputSchema') {
+    assertRecord(value, `resolved request.${field}`);
   } else if (field === 'thinking') {
     if (typeof value !== 'string' || !THINKING_VALUES.has(value as Thinking)) throw new NodeDefinitionError('resolved request.thinking is unsupported.');
   } else {

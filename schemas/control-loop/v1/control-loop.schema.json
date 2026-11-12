@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/langgraph-exec/control-loop/v1",
+  "title": "langgraph-exec Control Loop v1",
+  "description": "A bounded control.loop document with primitive type metadata and optional JSON Schema expressions on state and ports.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "kind",
+    "name",
+    "imports",
+    "state",
+    "ports",
+    "body",
+    "loop"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.handschuh.dev/langgraph-exec/control-loop/v1",
+      "description": "The control-loop contract identifier.",
+      "examples": [
+        "https://schemas.handschuh.dev/langgraph-exec/control-loop/v1"
+      ]
+    },
+    "kind": {
+      "const": "control.loop",
+      "description": "The document kind discriminator.",
+      "examples": [
+        "control.loop"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+      "description": "Stable loop name.",
+      "examples": [
+        "example"
+      ]
+    },
+    "imports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Import"
+      },
+      "description": "Trusted body imports.",
+      "examples": [
+        []
+      ]
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields"
+      ],
+      "properties": {
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Field"
+          },
+          "description": "fields contract field.",
+          "examples": [
+            {}
+          ]
+        }
+      },
+      "description": "Loop state fields.",
+      "examples": [
+        {
+          "fields": {
+            "value": {
+              "type": "integer",
+              "default": 0,
+              "reducer": "replace"
+            }
+          }
+        }
+      ]
+    },
+    "ports": {
+      "$ref": "#/$defs/Ports",
+      "description": "Loop public ports.",
+      "examples": [
+        {
+          "inputs": {},
+          "outputs": {
+            "value": {
+              "state": "value",
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "component": {
+          "type": "string",
+          "minLength": 1,
+          "description": "component contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "inputs contract field.",
+          "examples": [
+            {}
+          ]
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "outputs contract field.",
+          "examples": [
+            {}
+          ]
+        }
+      },
+      "description": "Loop body component and bindings.",
+      "examples": [
+        {
+          "component": "trusted.body",
+          "inputs": {},
+          "outputs": {
+            "value": "state.value"
+          }
+        }
+      ]
+    },
+    "loop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "body",
+        "exit",
+        "condition",
+        "counter",
+        "maxIterations",
+        "maxSteps",
+        "onExhaustion"
+      ],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "minLength": 1,
+          "description": "entry contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "description": "body contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "exit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "exit contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "condition contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "counter": {
+          "type": "string",
+          "minLength": 1,
+          "description": "counter contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "maxIterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "maxIterations contract field.",
+          "examples": [
+            1
+          ]
+        },
+        "maxSteps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "maxSteps contract field.",
+          "examples": [
+            1
+          ]
+        },
+        "onExhaustion": {
+          "enum": [
+            "error",
+            "return"
+          ],
+          "description": "onExhaustion contract field.",
+          "examples": [
+            "error"
+          ]
+        }
+      },
+      "description": "Finite loop control contract.",
+      "examples": [
+        {
+          "entry": "body",
+          "body": "body",
+          "exit": "done",
+          "condition": "done",
+          "counter": "iterations",
+          "maxIterations": 2,
+          "maxSteps": 4,
+          "onExhaustion": "error"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "SchemaExpression": {
+      "description": "An inline JSON Schema object or registry schema URI.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object"
+        }
+      ],
+      "examples": [
+        "https://schemas.handschuh.dev/example/v1"
+      ]
+    },
+    "Import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "alias"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "path contract field.",
+          "examples": [
+            "child.yml"
+          ]
+        },
+        "alias": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+          "description": "alias contract field.",
+          "examples": [
+            "child"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "sha256 contract field.",
+          "examples": [
+            "0000000000000000000000000000000000000000000000000000000000000000"
+          ]
+        }
+      },
+      "description": "Import reusable contract definition.",
+      "examples": [
+        {
+          "path": "child.yml",
+          "alias": "child"
+        }
+      ]
+    },
+    "Field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "reducer"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "type contract field.",
+          "examples": [
+            "integer"
+          ]
+        },
+        "schema": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "schema contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        },
+        "default": {
+          "description": "default contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "reducer": {
+          "enum": [
+            "replace",
+            "append",
+            "sum",
+            "merge"
+          ],
+          "description": "reducer contract field.",
+          "examples": [
+            "replace"
+          ]
+        }
+      },
+      "description": "Field reusable contract definition.",
+      "examples": [
+        {
+          "type": "integer",
+          "default": 0,
+          "reducer": "replace"
+        }
+      ]
+    },
+    "Port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "type"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "minLength": 1,
+          "description": "state contract field.",
+          "examples": [
+            "value"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "type contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "schema": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "schema contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "required contract field.",
+          "examples": [
+            true
+          ]
+        }
+      },
+      "description": "Port reusable contract definition.",
+      "examples": [
+        {
+          "state": "value",
+          "type": "integer"
+        }
+      ]
+    },
+    "Ports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Port"
+          },
+          "description": "inputs contract field.",
+          "examples": [
+            {}
+          ]
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Port"
+          },
+          "description": "outputs contract field.",
+          "examples": [
+            {}
+          ]
+        }
+      },
+      "description": "Ports reusable contract definition.",
+      "examples": [
+        {
+          "inputs": {},
+          "outputs": {
+            "value": {
+              "state": "value",
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schema": "https://schemas.handschuh.dev/langgraph-exec/control-loop/v1",
+      "kind": "control.loop",
+      "name": "example",
+      "imports": [],
+      "state": {
+        "fields": {
+          "value": {
+            "type": "integer",
+            "default": 0,
+            "reducer": "replace"
+          }
+        }
+      },
+      "ports": {
+        "inputs": {},
+        "outputs": {
+          "value": {
+            "state": "value",
+            "type": "integer"
+          }
+        }
+      },
+      "body": {
+        "component": "trusted.body",
+        "inputs": {},
+        "outputs": {
+          "value": "state.value"
+        }
+      },
+      "loop": {
+        "entry": "body",
+        "body": "body",
+        "exit": "done",
+        "condition": "done",
+        "counter": "iterations",
+        "maxIterations": 2,
+        "maxSteps": 4,
+        "onExhaustion": "error"
+      }
+    }
+  ]
+}

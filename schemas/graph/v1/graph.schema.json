@@ -1,0 +1,569 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/langgraph-exec/graph/v1",
+  "title": "langgraph-exec Graph v1",
+  "description": "A trusted graph document with primitive type metadata and optional JSON Schema expressions on state and public ports.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "kind",
+    "name",
+    "imports",
+    "state",
+    "ports",
+    "nodes",
+    "bindings",
+    "edges",
+    "routes"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.handschuh.dev/langgraph-exec/graph/v1",
+      "description": "The graph contract identifier.",
+      "examples": [
+        "https://schemas.handschuh.dev/langgraph-exec/graph/v1"
+      ]
+    },
+    "kind": {
+      "const": "graph",
+      "description": "The document kind discriminator.",
+      "examples": [
+        "graph"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+      "description": "Stable graph name.",
+      "examples": [
+        "example"
+      ]
+    },
+    "imports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Import"
+      },
+      "description": "Trusted component imports.",
+      "examples": [
+        []
+      ]
+    },
+    "state": {
+      "$ref": "#/$defs/State",
+      "description": "Graph state fields.",
+      "examples": [
+        {
+          "fields": {
+            "value": {
+              "type": "string",
+              "reducer": "replace"
+            }
+          }
+        }
+      ]
+    },
+    "ports": {
+      "$ref": "#/$defs/Ports",
+      "description": "Graph public ports.",
+      "examples": [
+        {
+          "inputs": {},
+          "outputs": {
+            "result": {
+              "state": "result",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Node"
+      },
+      "description": "Graph node instances.",
+      "examples": [
+        [
+          {
+            "id": "step",
+            "component": "trusted.step"
+          }
+        ]
+      ]
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Binding"
+      },
+      "description": "Port and state bindings.",
+      "examples": [
+        [
+          {
+            "from": "step.out",
+            "to": "output.result"
+          }
+        ]
+      ]
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Edge"
+      },
+      "description": "Static graph edges.",
+      "examples": [
+        [
+          {
+            "from": "__start__",
+            "to": "step"
+          },
+          {
+            "from": "step",
+            "to": "__end__"
+          }
+        ]
+      ]
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Route"
+      },
+      "description": "Conditional routes.",
+      "examples": [
+        []
+      ]
+    }
+  },
+  "$defs": {
+    "SchemaExpression": {
+      "description": "An inline JSON Schema object or registry schema URI.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object"
+        }
+      ],
+      "examples": [
+        "https://schemas.handschuh.dev/example/v1"
+      ]
+    },
+    "Import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "alias"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "path contract field.",
+          "examples": [
+            "child.yml"
+          ]
+        },
+        "alias": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+          "description": "alias contract field.",
+          "examples": [
+            "child"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "sha256 contract field.",
+          "examples": [
+            "0000000000000000000000000000000000000000000000000000000000000000"
+          ]
+        }
+      },
+      "description": "Import reusable contract definition.",
+      "examples": [
+        {
+          "path": "child.yml",
+          "alias": "child"
+        }
+      ]
+    },
+    "Field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "reducer"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "type contract field.",
+          "examples": [
+            "string"
+          ]
+        },
+        "schema": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "schema contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        },
+        "default": {
+          "description": "default contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "reducer": {
+          "enum": [
+            "replace",
+            "append",
+            "sum",
+            "merge"
+          ],
+          "description": "reducer contract field.",
+          "examples": [
+            "replace"
+          ]
+        }
+      },
+      "description": "Field reusable contract definition.",
+      "examples": [
+        {
+          "type": "string",
+          "reducer": "replace"
+        }
+      ]
+    },
+    "State": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields"
+      ],
+      "properties": {
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Field"
+          },
+          "description": "fields contract field.",
+          "examples": [
+            {}
+          ]
+        }
+      },
+      "description": "State reusable contract definition.",
+      "examples": [
+        {
+          "fields": {
+            "value": {
+              "type": "string",
+              "reducer": "replace"
+            }
+          }
+        }
+      ]
+    },
+    "Port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "type"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+          "description": "state contract field.",
+          "examples": [
+            "result"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "type contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "schema": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "schema contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "required contract field.",
+          "examples": [
+            true
+          ]
+        }
+      },
+      "description": "Port reusable contract definition.",
+      "examples": [
+        {
+          "state": "result",
+          "type": "string"
+        }
+      ]
+    },
+    "Ports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Port"
+          },
+          "description": "inputs contract field.",
+          "examples": [
+            {}
+          ]
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Port"
+          },
+          "description": "outputs contract field.",
+          "examples": [
+            {}
+          ]
+        }
+      },
+      "description": "Ports reusable contract definition.",
+      "examples": [
+        {
+          "inputs": {},
+          "outputs": {
+            "result": {
+              "state": "result",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "Node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "component"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+          "description": "id contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "component": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+          "description": "component contract field.",
+          "examples": [
+            "example"
+          ]
+        }
+      },
+      "description": "Node reusable contract definition.",
+      "examples": [
+        {
+          "id": "step",
+          "component": "trusted.step"
+        }
+      ]
+    },
+    "Binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "description": "from contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "description": "to contract field.",
+          "examples": [
+            "example"
+          ]
+        }
+      },
+      "description": "Binding reusable contract definition.",
+      "examples": [
+        {
+          "from": "step.out",
+          "to": "output.result"
+        }
+      ]
+    },
+    "Edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "description": "from contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "description": "to contract field.",
+          "examples": [
+            "example"
+          ]
+        }
+      },
+      "description": "Edge reusable contract definition.",
+      "examples": [
+        {
+          "from": "step.out",
+          "to": "output.result"
+        }
+      ]
+    },
+    "Route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "selector",
+        "cases",
+        "default"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "description": "from contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "selector": {
+          "type": "string",
+          "minLength": 1,
+          "description": "selector contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "cases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "cases contract field.",
+          "examples": [
+            {}
+          ]
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1,
+          "description": "default contract field.",
+          "examples": [
+            "example"
+          ]
+        }
+      },
+      "description": "Route reusable contract definition.",
+      "examples": [
+        {
+          "from": "choose",
+          "selector": "state.route",
+          "cases": {
+            "yes": "yes"
+          },
+          "default": "yes"
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schema": "https://schemas.handschuh.dev/langgraph-exec/graph/v1",
+      "kind": "graph",
+      "name": "example",
+      "imports": [],
+      "state": {
+        "fields": {
+          "value": {
+            "type": "string",
+            "reducer": "replace"
+          }
+        }
+      },
+      "ports": {
+        "inputs": {},
+        "outputs": {
+          "value": {
+            "state": "value",
+            "type": "string"
+          }
+        }
+      },
+      "nodes": [
+        {
+          "id": "step",
+          "component": "trusted.step"
+        }
+      ],
+      "bindings": [],
+      "edges": [
+        {
+          "from": "__start__",
+          "to": "step"
+        },
+        {
+          "from": "step",
+          "to": "__end__"
+        }
+      ],
+      "routes": []
+    }
+  ]
+}

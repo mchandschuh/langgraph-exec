@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/langgraph-exec/node/v1",
+  "title": "langgraph-exec Node v1",
+  "description": "A trusted registered component definition. Primitive parameter and port types remain supported; schema expressions add structured validation and external oneOf contracts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "kind",
+    "name",
+    "implementation",
+    "parameters",
+    "ports",
+    "bindings"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.handschuh.dev/langgraph-exec/node/v1",
+      "description": "The node contract identifier.",
+      "examples": [
+        "https://schemas.handschuh.dev/langgraph-exec/node/v1"
+      ]
+    },
+    "kind": {
+      "const": "node",
+      "description": "The document kind discriminator.",
+      "examples": [
+        "node"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+      "description": "Stable node name.",
+      "examples": [
+        "example"
+      ]
+    },
+    "implementation": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+      "description": "Trusted registered implementation name.",
+      "examples": [
+        "example"
+      ]
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Named parameters using the legacy primitive type/default contract plus optional JSON Schema expressions.",
+      "additionalProperties": {
+        "$ref": "#/$defs/Parameter"
+      },
+      "examples": [
+        {}
+      ]
+    },
+    "ports": {
+      "$ref": "#/$defs/Ports",
+      "description": "Public input and output port contracts.",
+      "examples": [
+        {
+          "inputs": {},
+          "outputs": {
+            "result": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "bindings": {
+      "type": "object",
+      "description": "Request-field bindings to parameters or input paths.",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "examples": [
+        {}
+      ]
+    },
+    "contracts": {
+      "type": "object",
+      "description": "Optional input/output service contracts expressed as JSON Schema or oneOf references.",
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "input contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        },
+        "output": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "output contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        }
+      },
+      "examples": [
+        {}
+      ],
+      "required": []
+    }
+  },
+  "$defs": {
+    "SchemaExpression": {
+      "description": "An inline JSON Schema object or a registry schema URI.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object"
+        }
+      ],
+      "examples": [
+        "https://schemas.handschuh.dev/example/v1"
+      ]
+    },
+    "Parameter": {
+      "type": "object",
+      "description": "A parameter retaining the legacy primitive type/value methodology with optional schema validation.",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object"
+          ],
+          "description": "Legacy primitive parameter type.",
+          "examples": [
+            "string"
+          ]
+        },
+        "schema": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "schema contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        },
+        "default": {
+          "description": "default contract field.",
+          "examples": [
+            "example"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "required contract field.",
+          "examples": [
+            true
+          ]
+        }
+      },
+      "examples": [
+        {
+          "type": "string",
+          "default": "example"
+        }
+      ]
+    },
+    "Port": {
+      "type": "object",
+      "description": "A public port with a legacy type label and optional schema expression.",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Legacy port type label.",
+          "examples": [
+            "example"
+          ]
+        },
+        "schema": {
+          "$ref": "#/$defs/SchemaExpression",
+          "description": "schema contract field.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/v1"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "required contract field.",
+          "examples": [
+            true
+          ]
+        }
+      },
+      "examples": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "Ports": {
+      "type": "object",
+      "description": "The node's public input and output port maps.",
+      "additionalProperties": false,
+      "required": [
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Port"
+          },
+          "description": "inputs contract field.",
+          "examples": [
+            {}
+          ]
+        },
+        "outputs": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/Port"
+          },
+          "description": "outputs contract field.",
+          "examples": [
+            {
+              "result": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      "examples": [
+        {
+          "inputs": {},
+          "outputs": {
+            "result": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schema": "https://schemas.handschuh.dev/langgraph-exec/node/v1",
+      "kind": "node",
+      "name": "completion",
+      "implementation": "llm.complete",
+      "parameters": {
+        "requestSchema": {
+          "type": "string",
+          "default": "https://schemas.handschuh.dev/llm/request/v1"
+        },
+        "task": {
+          "type": "object",
+          "schema": {
+            "oneOf": [
+              {
+                "$ref": "https://schemas.handschuh.dev/example/task/v1"
+              }
+            ]
+          },
+          "required": true
+        }
+      },
+      "ports": {
+        "inputs": {
+          "task": {
+            "type": "object",
+            "required": true
+          }
+        },
+        "outputs": {
+          "response": {
+            "type": "object",
+            "required": true
+          }
+        }
+      },
+      "bindings": {
+        "task": "parameter.task",
+        "systemPrompt": "parameter.systemPrompt"
+      },
+      "contracts": {
+        "input": {
+          "oneOf": [
+            {
+              "$ref": "https://schemas.handschuh.dev/llm/request/v1"
+            },
+            {
+              "$ref": "https://schemas.handschuh.dev/llm/request/v2"
+            }
+          ]
+        },
+        "output": {
+          "oneOf": [
+            {
+              "$ref": "https://schemas.handschuh.dev/llm/response/v1"
+            },
+            {
+              "$ref": "https://schemas.handschuh.dev/llm/response/v2"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

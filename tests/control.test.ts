@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { executeParallel, joinParallel } from '../src/controls.js';
+import { executeJoin, executeParallel, joinParallel } from '../src/controls.js';
 
 test('control.parallel runs bounded branches concurrently and captures outputs', async () => {
   const events: string[] = [];
@@ -24,4 +24,9 @@ test('control.join requires all declared branches and merges outputs', () => {
   assert.equal(joinParallel({ left: { value: 1 } }, ['left', 'right']).status, 'missing_branch');
   const joined = joinParallel({ left: { values: [1] }, right: { values: [2] } }, ['left', 'right'], (current, next) => [...(current as number[]), ...(next as number[])]);
   assert.deepEqual(joined, { status: 'success', value: { values: [1, 2] } });
+});
+
+test('control.join applies declared reducers at the barrier', () => {
+  const joined = executeJoin({ left: { values: [1], total: 2 }, right: { values: [3], total: 4 } }, { branches: ['left', 'right'], reducers: { values: 'append', total: 'sum' } });
+  assert.deepEqual(joined, { status: 'success', value: { values: [1, 3], total: 6 } });
 });

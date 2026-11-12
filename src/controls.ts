@@ -72,3 +72,17 @@ export function joinParallel(
     return { status: 'success', value };
   } catch (error) { return { status: 'merge_error', value: {}, error: error instanceof Error ? error.message : 'Parallel join failed.' }; }
 }
+
+export interface JoinContract { readonly branches: readonly string[]; readonly reducers: Readonly<Record<string, 'replace' | 'append' | 'sum' | 'merge'>> }
+
+export function executeJoin(branches: Readonly<Record<string, unknown>>, contract: JoinContract, debug?: DebugSink): JoinedResult {
+  const reducers = contract.reducers;
+  return joinParallel(branches, contract.branches, (current, next, branch) => {
+    const key = Object.entries(branches[branch] as Record<string, unknown>).find(([, value]) => value === next)?.[0];
+    const reducer = key ? reducers[key] : undefined;
+    if (!reducer || reducer === 'replace') return next;
+    if (reducer === 'append') return [...(Array.isArray(current) ? current : []), ...(Array.isArray(next) ? next : [next])];
+    if (reducer === 'sum') return Number(current ?? 0) + Number(next ?? 0);
+    return { ...(current && typeof current === 'object' ? current : {}), ...(next && typeof next === 'object' ? next : {}) };
+  }, debug);
+}

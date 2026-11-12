@@ -1,0 +1,114 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-03000000
+orderKey: "03000000"
+parentTaskUid: null
+taskType: implementation
+processingStatus: processing_completed
+title: Implement control.join control node (WI-0004)
+objective: Implement control.join as an explicit registered control node.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - README.md
+    - package.json
+    - SKILL.md
+  informational: []
+dependsOn:
+  - WI-0004-03000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/join.ts
+    - src/parallel.ts
+    - tests/join.test.ts
+    - .docs/work-items/WI-0004/
+  commitSubject: "WI-0004: 05: join control node"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - Validation
+      - Evidence
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: "Add barrier/join semantics for parallel branches with explicit reducer-based merge behavior."
+    changeTypes:
+      - production-code
+      - test-code
+    changeIntent: feature
+    inputs:
+      - id: INPUT-CONTRACT
+        kind: constraint
+        ref: "#constraint/CONTROL-NODE-CONTRACT"
+        purpose: The WI-0004 control-node scope and acceptance contract.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: "Implement control.join with closed validation, deterministic behavior, tests, CLI inspection, and no live-provider dependency."
+        inputRefs:
+          - INPUT-CONTRACT
+        testCaseRefs:
+          - "#test-case/TC-001"
+    ownedPaths:
+      - src/join.ts
+      - src/parallel.ts
+      - tests/join.test.ts
+    nonGoals:
+      - Do not deploy to production.
+      - Do not implement checkpointing or interrupt/resume.
+    steps:
+      - Define the control.join contract and validator.
+      - Implement deterministic runtime behavior and CLI inspection.
+      - Add focused tests and preserve earlier regression tests.
+      - Run typecheck, tests, build, and release checks.
+  result:
+    status: implemented
+    implementation:
+      summary: "Implemented control.join barrier behavior with required branch checks and replace/append/sum/merge reducer support."
+      changes:
+        - id: CHANGE-001
+          type: production-code
+          summary: "Implement control.join barrier and reducer merge semantics."
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - src/
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: tests/control.test.ts
+          selector: control.join applies declared reducers at the barrier
+    verification:
+      status: passed
+      objectiveRefs:
+        - OBJ-001
+      tests:
+        - id: EXEC-001
+          type: unit
+          testCaseRefs:
+            - "#test-case/TC-001"
+          command: yarn test
+          status: passed
+          result: "29 tests passed, including control.join barriers/reducers and earlier control/runtime regressions."
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-001"
+          command: yarn typecheck && yarn build
+          status: passed
+          result: Typecheck and build exited zero.
+    limitations:
+      - "Additional control-node types remain for subsequent WI-0004 steps."

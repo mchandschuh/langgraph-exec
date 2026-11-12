@@ -4,7 +4,7 @@ taskUid: WI-0003-00000000
 orderKey: "00000000"
 parentTaskUid: null
 taskType: design
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the phase architecture and contracts (WI-0003)
 objective: Define the phase architecture and contracts for WI-0003.
 references:
@@ -37,7 +37,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
@@ -57,9 +57,24 @@ task:
       - Implementation evidence
       - live provider evidence
       - production deployment
-    references: []
+    references:
+      - id: REF-001
+        type: document
+        locator: README.md
+        description: "Repository phase architecture and release boundary documentation."
+      - id: REF-002
+        type: repositoryPath
+        locator: package.json
+        description: "Package runtime and build dependency boundary."
+      - id: REF-003
+        type: document
+        locator: SKILL.md
+        description: "Runtime safety and local release workflow guidance."
     provenance:
-      referenceRefs: []
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
       basis: This is an initial planning record derived from the phase scope and
         repository proposal.
       confidence: 90
@@ -74,18 +89,277 @@ task:
       - structure
       - contract
   result:
-    summary: Planned design result; no design execution has been performed.
+    summary: "Defined the versioned bounded-loop contract, compiler safety invariants, graph-owned iteration and step budgets, exhaustion behavior, conditional lowering boundary, and loop inspection model for WI-0003."
     model:
       name: wi-0003
       kind: architecture
       description: "Define the phase architecture and contracts for WI-0003: Deliver
         release 0.3.0 with explicit bounded loops, compiler-enforced termination
         budgets, deterministic loop execution, and loop inspection."
-    elements: []
-    relations: []
-    views: []
-    artifacts: []
-    outcomes: []
+    elements:
+      - id: E-001
+        type: contract
+        name: bounded-loop-artifact
+        description: "A versioned graph artifact declares explicit loops with entry, body, exit, condition, counter, finite iteration limit, and exhaustion policy."
+        provenance:
+          referenceRefs: []
+          basis: "Explicit loop declarations replace unsafe arbitrary back edges."
+          confidence: 98
+      - id: E-002
+        type: validator
+        name: loop-safety-validator
+        description: "Validates loop membership, entry/body/exit reachability, condition and counter state fields, finite limits, nested bounds, and route coverage."
+        provenance:
+          referenceRefs: []
+          basis: "Unbounded or undeclared cycles must fail before backend compilation."
+          confidence: 98
+      - id: E-003
+        type: state-model
+        name: graph-owned-budgets
+        description: "Maintains loop iteration counters and a graph-wide finite step budget independently of backend defaults."
+        provenance:
+          referenceRefs: []
+          basis: "Termination limits belong to graph state and compiler-generated transitions."
+          confidence: 96
+      - id: E-004
+        type: backend
+        name: bounded-conditional-lowering
+        description: "Lowers validated loop bodies to LangGraph conditional transitions that either exit, re-enter, or return a structured exhaustion failure."
+        provenance:
+          referenceRefs: []
+          basis: "The backend enforces the declared bounds at every loop transition."
+          confidence: 95
+      - id: E-005
+        type: interface
+        name: loop-inspection
+        description: "Exposes effective loop limits, counters, exhaustion policy, and terminal loop status through provider-free inspection and bounded runtime results."
+        provenance:
+          referenceRefs: []
+          basis: "Loop behavior must be inspectable without executing a provider."
+          confidence: 94
+    relations:
+      - id: REL-001
+        type: validates
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-002
+        description: "The loop artifact is checked against explicit safety invariants before compilation."
+        provenance:
+          referenceRefs: []
+          basis: "Validation is the gate for all loop-capable graph compilation."
+          confidence: 98
+      - id: REL-002
+        type: owns
+        source:
+          type: element
+          id: E-003
+        target:
+          type: element
+          id: E-004
+        description: "Graph-owned counters and budgets control compiler-generated conditional transitions."
+        provenance:
+          referenceRefs: []
+          basis: "Backend defaults cannot override explicit graph safety budgets."
+          confidence: 96
+      - id: REL-003
+        type: exposes
+        source:
+          type: element
+          id: E-004
+        target:
+          type: element
+          id: E-005
+        description: "Loop lowering produces inspectable effective limits and terminal statuses."
+        provenance:
+          referenceRefs: []
+          basis: "Inspection and bounded failures are part of the phase release contract."
+          confidence: 94
+    views:
+      - id: V-001
+        type: bounded-loop-flow
+        name: bounded-loop-flow
+        description: "Shows explicit loop validation, graph-owned counters, conditional exit/re-entry, exhaustion handling, and inspection."
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+          - E-005
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+        provenance:
+          referenceRefs: []
+          basis: "The view captures the phase-three safety and execution boundary."
+          confidence: 95
+    artifacts:
+      - id: A-001
+        type: schema
+        name: bounded-loop-schema
+        description: "Versioned loop-capable graph contract and normalized loop IR."
+        locator: src/graph.ts
+        format: typescript
+        status: proposed
+        provenance:
+          referenceRefs: []
+          basis: "The graph module will own loop parsing and validation."
+          confidence: 96
+        elementRefs:
+          - E-001
+          - E-002
+      - id: A-002
+        type: interfaceDefinition
+        name: loop-backend
+        description: "LangGraph conditional lowering, graph-owned counters, step budgets, and structured exhaustion result."
+        locator: src/graph.ts
+        format: typescript
+        status: proposed
+        provenance:
+          referenceRefs: []
+          basis: "The existing StateGraph backend is extended with explicit loop transitions."
+          confidence: 94
+        elementRefs:
+          - E-003
+          - E-004
+      - id: A-003
+        type: document
+        name: loop-inspection-contract
+        description: "Provider-free CLI inspection and bounded runtime status for loops."
+        locator: src/cli/main.ts
+        format: typescript
+        status: proposed
+        provenance:
+          referenceRefs: []
+          basis: "Users need to inspect effective bounds before execution."
+          confidence: 92
+        elementRefs:
+          - E-005
+    outcomes:
+      - id: O-001
+        type: implementationHandoff
+        statement: "Accept only versioned explicit loops with finite maxIterations and graph-wide maxSteps; arbitrary cycles remain invalid."
+        status: accepted
+        impact: 100
+        confidence: 98
+        referenceRefs: []
+        elementRefs:
+          - E-001
+          - E-002
+        artifactRefs:
+          - A-001
+      - id: O-002
+        type: implementationHandoff
+        statement: "Implement compiler-generated counters and conditional transitions that distinguish early exit, exhaustion failure, and declared exhaustion return."
+        status: accepted
+        impact: 98
+        confidence: 95
+        referenceRefs: []
+        elementRefs:
+          - E-003
+          - E-004
+        artifactRefs:
+          - A-002
+      - id: O-003
+        type: testHandoff
+        statement: "Test early exit, iteration exhaustion, step-budget exhaustion, nested bounds, failure routing, and inspection with fake components."
+        status: accepted
+        impact: 96
+        confidence: 96
+        referenceRefs: []
+        elementRefs:
+          - E-005
+        artifactRefs:
+          - A-003
     unresolvedQuestions: []
-    outputs: []
-    verificationObligations: []
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: complete
+        sourceRefs:
+          - REF-001
+        elementRefs:
+          - E-001
+          - E-002
+        description: "Versioned explicit bounded-loop contract and safety invariants."
+      - id: OUT-002
+        category: behavior-model
+        status: complete
+        sourceRefs:
+          - REF-002
+        elementRefs:
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-002
+        description: "Graph-owned counters, step budgets, conditional lowering, and terminal loop outcomes."
+      - id: OUT-003
+        category: verification-obligation
+        status: complete
+        sourceRefs:
+          - REF-003
+        elementRefs:
+          - E-005
+        artifactRefs:
+          - A-003
+        description: "Loop inspection and deterministic evidence handoff."
+    verificationObligations:
+      - id: VER-001
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+        testCaseRefs: []
+        method:
+          type: unit-test
+          steps:
+            - "Validate finite loop declarations, missing exits, missing limits, arbitrary cycles, and bypass routes."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Verify loop contracts and safety invariants fail closed."
+      - id: VER-002
+        kind: component-test
+        status: planned
+        sourceRefs:
+          - REF-002
+        testCaseRefs: []
+        method:
+          type: component-test
+          steps:
+            - "Execute early-exit, exhaustion, step-budget, nested-bound, and failure-routing fixtures with fake components."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Verify deterministic bounded loop behavior."
+      - id: VER-003
+        kind: inspection
+        status: planned
+        sourceRefs:
+          - REF-003
+        testCaseRefs: []
+        method:
+          type: inspection
+          steps:
+            - "Inspect a loop graph and assert effective limits, counter fields, and exhaustion policy are provider-free."
+          command: yarn test
+        requiredFor:
+          - implementable
+        description: "Verify loop inspection and observability boundaries."
+      - id: VER-004
+        kind: build
+        status: planned
+        sourceRefs:
+          - REF-002
+        testCaseRefs: []
+        method:
+          type: build
+          steps:
+            - "Run typecheck, regression tests, loop tests, build, link, and loop CLI inspection smoke checks."
+          command: yarn typecheck && yarn test && yarn build
+        requiredFor:
+          - implementable
+        description: "Run the phase-three local release gate."

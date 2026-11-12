@@ -72,11 +72,11 @@ From the repository root, execute the direct-completion sample with:
 
 ```bash
 yarn build
-yarn start run samples/direct-completion.yml --input samples/input.json
+yarn start run samples/direct-completion/node.yml --input samples/direct-completion/input.json
 ```
 
-See [`samples/README.md`](./samples/README.md) for provider-free validation
-and inspection commands.
+See [`samples/README.md`](./samples/README.md) for capability-organized direct,
+nested-graph, and bounded-loop samples.
 
 ## Design constraints
 

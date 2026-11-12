@@ -1,0 +1,47 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/loop/v1
+kind: loop
+name: sample-bounded-loop
+imports:
+  - path: body.yml
+    alias: body
+state:
+  fields:
+    task:
+      type: string
+      reducer: replace
+    result:
+      type: object
+      reducer: replace
+    done:
+      type: boolean
+      default: false
+      reducer: replace
+    iterations:
+      type: integer
+      default: 0
+      reducer: replace
+ports:
+  inputs:
+    task:
+      state: task
+      type: string
+      required: true
+  outputs:
+    result:
+      state: result
+      type: object
+loop:
+  entry: body
+  body: body
+  exit: done
+  condition: done
+  counter: iterations
+  maxIterations: 3
+  maxSteps: 6
+  onExhaustion: error
+body:
+  component: body
+  inputs:
+    task: state.task
+  outputs:
+    response: state.result

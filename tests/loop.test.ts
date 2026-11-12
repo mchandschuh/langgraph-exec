@@ -5,6 +5,7 @@ import { compileLoopFile, LoopDefinitionError, parseLoopDefinition } from '../sr
 import type { GraphComponent } from '../src/graph.js';
 
 const fixture = (name: string) => join(process.cwd(), 'tests', 'fixtures', 'loops', name);
+const sample = (name: string) => join(process.cwd(), 'samples', 'bounded-loop', name);
 const component = (name: string, execute: GraphComponent['execute'], inputs = ['value'], outputs = ['value', 'done', 'iterations']): GraphComponent => ({ name, inputs: Object.fromEntries(inputs.map((key) => [key, { type: key === 'value' ? 'integer' : 'boolean' }])), outputs: Object.fromEntries(outputs.map((key) => [key, { type: key === 'iterations' ? 'integer' : key === 'value' ? 'integer' : 'boolean' }])), execute });
 
 const fake = {
@@ -50,4 +51,11 @@ test('loop inspection is provider-free and exposes effective limits', async () =
   const loop = await compileLoopFile(fixture('early-exit.yml'), { components: fake });
   assert.equal(loop.inspect.kind, 'loop');
   assert.deepEqual(loop.inspect.loop, { entry: 'body', body: 'body', exit: 'done', condition: 'done', counter: 'iterations', maxIterations: 5, maxSteps: 10, onExhaustion: 'error' });
+});
+
+test('bounded-loop sample is a real inspectable loop artifact', async () => {
+  const loop = await compileLoopFile(sample('loop.yml'), { components: fake });
+  assert.equal(loop.definition.name, 'sample-bounded-loop');
+  assert.equal(loop.definition.loop.maxSteps, 6);
+  assert.equal(loop.inspect.resolution && (loop.inspect.resolution as Record<string, unknown>).bounded, true);
 });

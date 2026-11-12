@@ -8,7 +8,7 @@ import type { GraphComponent } from '../src/graph.js';
 import { main } from '../src/cli/main.js';
 
 const graphFixture = (name: string) => join(process.cwd(), 'tests', 'fixtures', 'graphs', name);
-const phaseTwoSample = join(process.cwd(), 'samples', 'phase-two', 'nested-answer.yml');
+const nestedGraphSample = join(process.cwd(), 'samples', 'nested-graph', 'graph.yml');
 
 function component(name: string, execute: GraphComponent['execute'], inputs = ['in'], outputs = ['out']): GraphComponent {
   return { name, inputs: Object.fromEntries(inputs.map((key) => [key, { type: 'string' }])), outputs: Object.fromEntries(outputs.map((key) => [key, { type: 'string' }])), execute };
@@ -67,7 +67,7 @@ test('CLI validates and inspects an imported graph without provider access', asy
 });
 
 test('phase-two sample composes an imported child graph through public ports', async () => {
-  const graph = await compileGraphFile(phaseTwoSample, { completionService });
+  const graph = await compileGraphFile(nestedGraphSample, { completionService });
   assert.deepEqual(await graph.invoke({ task: 'sample task' }), { result: { task: 'sample task' } });
   assert.equal(graph.definition.name, 'sample-nested-answer');
 });

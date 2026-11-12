@@ -1,6 +1,6 @@
 schema: https://schemas.handschuh.dev/langgraph-exec/node/v1
 kind: node
-name: phase-two-direct-completion
+name: bounded-loop-body
 implementation: llm.complete
 parameters:
   provider:
@@ -14,13 +14,13 @@ parameters:
     default: high
   maxFailedAttempts:
     type: integer
-    default: 3
+    default: 1
   maxIterations:
     type: integer
-    default: 2
+    default: 1
   systemPrompt:
     type: string
-    default: Return a concise answer to the supplied task.
+    default: Return a concise bounded-loop response.
 ports:
   inputs:
     task:

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import type { CompletionService, NodeDefinition } from './node.js';
+import type { RetryPolicy } from '@langchain/langgraph';
 import type { DebugSink } from 'llm';
 import { executeNode, parseNodeDefinition } from './node.js';
 import { parseStructuredDocument } from './document.js';
@@ -15,7 +16,7 @@ export interface GraphImport { readonly path: string; readonly alias: string; re
 export interface GraphStateField { readonly type: string; readonly schema?: SchemaExpression; readonly default?: unknown; readonly reducer: ReducerName }
 export interface GraphPort { readonly state: string; readonly type: string; readonly schema?: SchemaExpression; readonly required?: boolean }
 export interface ComponentPort { readonly type: string; readonly schema?: SchemaExpression; readonly required?: boolean; readonly state?: string }
-export interface GraphNodeInstance { readonly id: string; readonly component: string }
+export interface GraphNodeInstance { readonly id: string; readonly component: string; readonly retryPolicy?: RetryPolicy; readonly timeout?: number }
 export interface GraphBinding { readonly from: string; readonly to: string }
 export interface GraphEdge { readonly from: string; readonly to: string }
 export interface GraphRoute { readonly from: string; readonly selector: string; readonly cases: Readonly<Record<string, string>>; readonly default: string }
@@ -32,7 +33,7 @@ export interface GraphComponent {
   execute(input: Readonly<Record<string, unknown>>, state: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<Record<string, unknown>>;
 }
 export interface GraphCompileOptions { readonly rootDir?: string; readonly components?: Readonly<Record<string, GraphComponent>>; readonly completionService?: CompletionService; readonly debug?: DebugSink; readonly schemaRegistry?: SchemaRegistry }
-export interface CompiledGraph { readonly definition: GraphDefinition; readonly inspect: Record<string, unknown>; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<Record<string, unknown>> }
+export interface CompiledGraph { readonly definition: GraphDefinition; readonly inspect: Record<string, unknown>; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<Record<string, unknown>>; stream?(input: Readonly<Record<string, unknown>>, mode?: 'values' | 'updates' | 'debug' | 'tasks'): Promise<AsyncIterable<unknown>> }
 
 export class GraphDefinitionError extends Error {
   readonly code = 'GRAPH_DEFINITION_INVALID' as const;
@@ -49,6 +50,7 @@ function string(value: unknown, path: string): string { if (typeof value !== 'st
 function keys(value: Record<string, unknown>, allowed: readonly string[], path: string): void { const accepted = new Set(allowed); for (const key of Object.keys(value)) if (!accepted.has(key)) throw new GraphDefinitionError(`${path}.${key} is not allowed.`); }
 function identifier(value: unknown, path: string): string { const result = string(value, path); if (!IDENTIFIER.test(result)) throw new GraphDefinitionError(`${path} must be a valid identifier.`); return result; }
 function array(value: unknown, path: string): readonly unknown[] { if (!Array.isArray(value)) throw new GraphDefinitionError(`${path} must be an array.`); return value; }
+function integer(value: unknown, path: string, minimum: number, maximum: number): number { if (!Number.isInteger(value) || (value as number) < minimum || (value as number) > maximum) throw new GraphDefinitionError(`${path} must be an integer between ${minimum} and ${maximum}.`); return value as number; }
 
 function parsePorts(value: unknown, path: string): Record<string, GraphPort> {
   const source = record(value, path); const result: Record<string, GraphPort> = {};
@@ -68,7 +70,7 @@ export function parseGraphDefinition(source: string, filePath = 'graph.yaml', re
   const imports: GraphImport[] = []; for (const [index, raw] of array(graph.imports ?? [], 'imports').entries()) { const item = record(raw, `imports[${index}]`); keys(item, ['path', 'alias', 'sha256'], `imports[${index}]`); const sha256 = item.sha256 === undefined ? undefined : string(item.sha256, `imports[${index}].sha256`); if (sha256 && !SHA256.test(sha256)) throw new GraphDefinitionError(`imports[${index}].sha256 must be lowercase SHA-256.`); imports.push({ path: string(item.path, `imports[${index}].path`), alias: identifier(item.alias, `imports[${index}].alias`), ...(sha256 ? { sha256 } : {}) }); }
   if (new Set(imports.map((item) => item.alias)).size !== imports.length) throw new GraphDefinitionError('Import aliases must be unique.');
   const ports = record(graph.ports, 'ports'); keys(ports, ['inputs', 'outputs'], 'ports');
-  const nodes = array(graph.nodes, 'nodes').map((raw, index) => { const node = record(raw, `nodes[${index}]`); keys(node, ['id', 'component'], `nodes[${index}]`); return { id: identifier(node.id, `nodes[${index}].id`), component: identifier(node.component, `nodes[${index}].component`) }; });
+  const nodes = array(graph.nodes, 'nodes').map((raw, index) => { const node = record(raw, `nodes[${index}]`); keys(node, ['id', 'component', 'retryPolicy', 'timeout'], `nodes[${index}]`); return { id: identifier(node.id, `nodes[${index}].id`), component: identifier(node.component, `nodes[${index}].component`), ...(node.retryPolicy !== undefined ? { retryPolicy: node.retryPolicy as RetryPolicy } : {}), ...(node.timeout !== undefined ? { timeout: integer(node.timeout, `nodes[${index}].timeout`, 1, 3600000) } : {}) }; });
   if (nodes.length === 0) throw new GraphDefinitionError('nodes must contain at least one node.'); if (new Set(nodes.map((node) => node.id)).size !== nodes.length) throw new GraphDefinitionError('Node identifiers must be unique.');
   const bindings = array(graph.bindings ?? [], 'bindings').map((raw, index) => { const binding = record(raw, `bindings[${index}]`); keys(binding, ['from', 'to'], `bindings[${index}]`); return { from: string(binding.from, `bindings[${index}].from`), to: string(binding.to, `bindings[${index}].to`) }; });
   const edges = array(graph.edges ?? [], 'edges').map((raw, index) => { const edge = record(raw, `edges[${index}]`); keys(edge, ['from', 'to'], `edges[${index}]`); return { from: string(edge.from, `edges[${index}].from`), to: string(edge.to, `edges[${index}].to`) }; });
@@ -130,11 +132,60 @@ function validateGraph(graph: GraphDefinition, components: Readonly<Record<strin
 function reducer(field: GraphStateField): (left: unknown, right: unknown) => unknown { if (field.reducer === 'append') return (left, right) => [...(Array.isArray(left) ? left : []), ...(Array.isArray(right) ? right : [right])]; if (field.reducer === 'sum') return (left, right) => Number(left ?? 0) + Number(right ?? 0); if (field.reducer === 'merge') return (left, right) => ({ ...(isRecord(left) ? left : {}), ...(isRecord(right) ? right : {}) }); return (_left, right) => right; }
 
 function buildCompiledGraph(graph: GraphDefinition, components: Readonly<Record<string, GraphComponent>>): CompiledGraph {
-  validateGraph(graph, components); const channels: Record<string, unknown> = {}; for (const [name, field] of Object.entries(graph.state)) channels[name] = Annotation({ reducer: reducer(field), default: () => field.default }); for (const binding of graph.bindings) { const source = endpointNode(binding.from); if (source) channels[internalOutputKey(source.node, source.port)] = Annotation({ reducer: (_left: unknown, right: unknown) => right, default: () => undefined }); } const builder = new StateGraph(Annotation.Root(channels as never) as never) as any;
-  for (const node of graph.nodes) { const component = components[node.component]; builder.addNode(node.id, async (state: Record<string, unknown>) => { const input: Record<string, unknown> = {}; for (const binding of graph.bindings) { const target = endpointNode(binding.to); if (target?.node === node.id) { const source = endpointNode(binding.from); input[target.port] = source ? state[internalOutputKey(source.node, source.port)] : pathValue(state, `state.${stateField(graph, binding.from)}`); } } const result = await component.execute(input, state); const update: Record<string, unknown> = {}; for (const binding of graph.bindings) { const source = endpointNode(binding.from); if (source?.node !== node.id) continue; const value = result[source.port]; update[internalOutputKey(source.node, source.port)] = value; if (binding.to.startsWith('output.')) update[graph.ports.outputs[binding.to.slice(7)].state] = value; else if (binding.to.startsWith('state.')) update[binding.to.slice(6)] = value; } return update; }); }
-  for (const edge of graph.edges) builder.addEdge(edge.from === START ? START : edge.from, edge.to === END ? END : edge.to); for (const route of graph.routes) { const pathMap: Record<string, string> = { ...route.cases, __default: route.default }; builder.addConditionalEdges(route.from, (state: Record<string, unknown>) => Object.prototype.hasOwnProperty.call(pathMap, String(pathValue(state, route.selector))) ? String(pathValue(state, route.selector)) : '__default', pathMap); }
-  const compiled = builder.compile({ checkpointer: false }); return { definition: graph, inspect: { schema: graph.schema, kind: graph.kind, name: graph.name, imports: graph.imports, state: graph.state, ports: graph.ports, nodes: graph.nodes, bindings: graph.bindings, edges: graph.edges, routes: graph.routes }, async invoke(input, debugSink = undefined) { const initial: Record<string, unknown> = {}; for (const [name, field] of Object.entries(graph.state)) initial[name] = field.default; for (const [portName, port] of Object.entries(graph.ports.inputs)) if (Object.prototype.hasOwnProperty.call(input, portName)) { initial[port.state] = input[portName]; emitDebug(debugSink, 'graph.port.flow', { graph: graph.name, from: `input.${portName}`, to: `state.${port.state}`, value: input[portName] }); } for (const node of graph.nodes) { const component = components[node.component]; const ports: Record<string, unknown> = {}; for (const binding of graph.bindings) { const target = endpointNode(binding.to); if (target?.node === node.id) ports[target.port] = endpointNode(binding.from) ? undefined : pathValue(initial, `state.${stateField(graph, binding.from)}`); } emitDebug(debugSink, 'graph.node.input', { graph: graph.name, node: node.id, component: node.component, ports }); } const state = await compiled.invoke(initial); for (const node of graph.nodes) emitDebug(debugSink, 'graph.node.output', { graph: graph.name, node: node.id, component: node.component, ports: state }); const output: Record<string, unknown> = {}; for (const [portName, port] of Object.entries(graph.ports.outputs)) { output[portName] = state[port.state]; emitDebug(debugSink, 'graph.port.flow', { graph: graph.name, from: `state.${port.state}`, to: `output.${portName}`, value: output[portName] }); } return output; } };
+  validateGraph(graph, components);
+  const channels: Record<string, unknown> = {};
+  for (const [name, field] of Object.entries(graph.state)) channels[name] = Annotation({ reducer: reducer(field), default: () => field.default });
+  channels.__events = Annotation({ reducer: (left: readonly Record<string, unknown>[], right: readonly Record<string, unknown>[]) => [...left, ...right], default: () => [] });
+  for (const binding of graph.bindings) { const source = endpointNode(binding.from); if (source) channels[internalOutputKey(source.node, source.port)] = Annotation({ reducer: (_left: unknown, right: unknown) => right, default: () => undefined }); }
+  const builder = new StateGraph(Annotation.Root(channels as never) as never) as any;
+  for (const node of graph.nodes) {
+    const component = components[node.component];
+    const action = async (state: Record<string, unknown>) => {
+      const input: Record<string, unknown> = {};
+      for (const binding of graph.bindings) {
+        const target = endpointNode(binding.to);
+        if (target?.node === node.id) {
+          const source = endpointNode(binding.from);
+          input[target.port] = source ? state[internalOutputKey(source.node, source.port)] : pathValue(state, `state.${stateField(graph, binding.from)}`);
+        }
+      }
+      const events: Record<string, unknown>[] = [{ event: 'graph.node.input', data: { graph: graph.name, node: node.id, component: node.component, ports: input } }];
+      const result = await component.execute(input, state);
+      const update: Record<string, unknown> = { __events: events };
+      for (const binding of graph.bindings) {
+        const source = endpointNode(binding.from);
+        if (source?.node !== node.id) continue;
+        const value = result[source.port];
+        update[internalOutputKey(source.node, source.port)] = value;
+        if (binding.to.startsWith('output.')) update[graph.ports.outputs[binding.to.slice(7)].state] = value;
+        else if (binding.to.startsWith('state.')) update[binding.to.slice(6)] = value;
+      }
+      events.push({ event: 'graph.node.output', data: { graph: graph.name, node: node.id, component: node.component, ports: result } });
+      return update;
+    };
+    const policy = { ...(node.retryPolicy ? { retryPolicy: node.retryPolicy } : {}), ...(node.timeout ? { timeout: node.timeout } : {}) };
+    builder.addNode(node.id, action, policy);
+  }
+  for (const edge of graph.edges) builder.addEdge(edge.from === START ? START : edge.from, edge.to === END ? END : edge.to);
+  for (const route of graph.routes) { const pathMap: Record<string, string> = { ...route.cases, __default: route.default }; builder.addConditionalEdges(route.from, (state: Record<string, unknown>) => Object.prototype.hasOwnProperty.call(pathMap, String(pathValue(state, route.selector))) ? String(pathValue(state, route.selector)) : '__default', pathMap); }
+  const compiled = builder.compile({ checkpointer: false });
+  const makeInitial = (input: Readonly<Record<string, unknown>>) => { const initial: Record<string, unknown> = {}; for (const [name, field] of Object.entries(graph.state)) initial[name] = field.default; for (const [portName, port] of Object.entries(graph.ports.inputs)) if (Object.prototype.hasOwnProperty.call(input, portName)) initial[port.state] = input[portName]; return initial; };
+  return {
+    definition: graph,
+    inspect: { schema: graph.schema, kind: graph.kind, name: graph.name, imports: graph.imports, state: graph.state, ports: graph.ports, nodes: graph.nodes, bindings: graph.bindings, edges: graph.edges, routes: graph.routes },
+    async invoke(input, debugSink = undefined) {
+      const initial = makeInitial(input);
+      for (const [portName, port] of Object.entries(graph.ports.inputs)) if (Object.prototype.hasOwnProperty.call(input, portName)) emitDebug(debugSink, 'graph.port.flow', { graph: graph.name, from: `input.${portName}`, to: `state.${port.state}`, value: input[portName] });
+      const state = await compiled.invoke(initial);
+      for (const event of (state.__events as Array<{ event: string; data: Record<string, unknown> }> | undefined) ?? []) emitDebug(debugSink, event.event, event.data);
+      const output: Record<string, unknown> = {};
+      for (const [portName, port] of Object.entries(graph.ports.outputs)) { output[portName] = state[port.state]; emitDebug(debugSink, 'graph.port.flow', { graph: graph.name, from: `state.${port.state}`, to: `output.${portName}`, value: output[portName] }); }
+      return output;
+    },
+    async stream(input, mode = 'updates') { return compiled.stream(makeInitial(input), { streamMode: mode }); },
+  };
 }
+
 
 async function loadComponent(filePath: string, rootDir: string, options: GraphCompileOptions, stack: readonly string[], registry: SchemaRegistry): Promise<GraphComponent> { const absolute = resolve(filePath); if (stack.includes(absolute)) throw new GraphDefinitionError(`Component import cycle detected at '${absolute}'.`); const source = await readFile(absolute, 'utf8'); const parsed = parseStructuredDocument(source, absolute) as Record<string, unknown>; if (parsed.kind === 'node') return nodeComponent(parseNodeDefinition(source, absolute, registry), options.completionService); const definition = parseGraphDefinition(source, absolute, registry); const components: Record<string, GraphComponent> = { ...(options.components ?? {}) }; for (const item of definition.imports) { const childPath = resolveImport(rootDir, dirname(absolute), item.path); const childSource = await readFile(childPath, 'utf8'); if (item.sha256 && digest(childSource) !== item.sha256) throw new GraphDefinitionError(`Digest mismatch for import '${item.path}'.`); components[item.alias] = await loadComponent(childPath, rootDir, options, [...stack, absolute], registry); } return graphComponent(buildCompiledGraph(definition, components)); }
 export async function compileGraphFile(filePath: string, options: GraphCompileOptions = {}): Promise<CompiledGraph> { const absolute = resolve(filePath); const rootDir = resolve(options.rootDir ?? dirname(absolute)); const source = await readFile(absolute, 'utf8'); const registry = options.schemaRegistry ?? await defaultSchemaRegistry(); const definition = parseGraphDefinition(source, absolute, registry); const components: Record<string, GraphComponent> = { ...(options.components ?? {}) }; for (const item of definition.imports) { const childPath = resolveImport(rootDir, dirname(absolute), item.path); const childSource = await readFile(childPath, 'utf8'); if (item.sha256 && digest(childSource) !== item.sha256) throw new GraphDefinitionError(`Digest mismatch for import '${item.path}'.`); components[item.alias] = await loadComponent(childPath, rootDir, options, [absolute], registry); } return buildCompiledGraph(definition, components); }

@@ -81,3 +81,18 @@ test('graph execution emits node and port-flow debug events', async () => {
   assert.ok(events.some((event) => event.event === 'graph.port.flow' && event.data?.from === 'input.message'));
   assert.ok(events.some((event) => event.event === 'graph.node.output' && event.data?.node === 'second'));
 });
+
+test('compiled graphs expose LangGraph stream updates and preserve actual node event values', async () => {
+  const graph = await compileGraphFile(graphFixture('fixed-dag.yml'), { components: fakeComponents });
+  assert.ok(graph.stream);
+  const stream = await graph.stream!({ message: 'stream graph' }, 'updates');
+  const updates: unknown[] = [];
+  for await (const update of stream) updates.push(update);
+  assert.ok(updates.length >= 2);
+  const events: Array<{ event: string; data?: Record<string, unknown> }> = [];
+  await graph.invoke({ message: 'actual values' }, (event) => events.push(event));
+  const firstInput = events.find((event) => event.event === 'graph.node.input' && event.data?.node === 'first');
+  const secondInput = events.find((event) => event.event === 'graph.node.input' && event.data?.node === 'second');
+  assert.equal(firstInput?.data?.ports && (firstInput.data.ports as Record<string, unknown>).in, 'actual values');
+  assert.equal(secondInput?.data?.ports && (secondInput.data.ports as Record<string, unknown>).in, 'actual values-first');
+});

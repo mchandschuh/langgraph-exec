@@ -24,6 +24,10 @@ ports:
 nodes:
   - id: first
     component: fake.first
+    retryPolicy:
+      maxAttempts: 2
+      jitter: false
+    timeout: 5000
   - id: second
     component: fake.second
 bindings:

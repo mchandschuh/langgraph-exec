@@ -388,6 +388,28 @@
           "examples": [
             "example"
           ]
+        },
+        "retryPolicy": {
+          "type": "object",
+          "description": "Optional LangGraph retry policy for operational node failures.",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "initialInterval": { "type": "integer", "minimum": 0, "description": "Initial retry delay in milliseconds.", "examples": [100] },
+            "backoffFactor": { "type": "number", "minimum": 0, "description": "Retry delay multiplier.", "examples": [2] },
+            "maxInterval": { "type": "integer", "minimum": 0, "description": "Maximum retry delay in milliseconds.", "examples": [1000] },
+            "maxAttempts": { "type": "integer", "minimum": 1, "description": "Maximum attempts including the first attempt.", "examples": [3] },
+            "jitter": { "type": "boolean", "description": "Whether retry delay jitter is enabled.", "examples": [false] },
+            "logWarning": { "type": "boolean", "description": "Whether retry warnings are logged.", "examples": [false] }
+          },
+          "examples": [{ "maxAttempts": 3, "jitter": false }]
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600000,
+          "description": "Maximum duration in milliseconds for one node attempt.",
+          "examples": [5000]
         }
       },
       "description": "Node reusable contract definition.",

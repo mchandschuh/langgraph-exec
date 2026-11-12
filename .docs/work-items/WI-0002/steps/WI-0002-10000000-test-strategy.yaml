@@ -4,7 +4,7 @@ taskUid: WI-0002-10000000
 orderKey: "10000000"
 parentTaskUid: WI-0002-00000000
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the deterministic unit-test strategy (WI-0002)
 objective: Define the deterministic unit-test strategy for WI-0002.
 references:
@@ -38,7 +38,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
@@ -55,27 +55,72 @@ task:
     requirements:
       - id: REQ-001
         kind: requirement
-        statement: "Define the deterministic unit-test strategy for WI-0002: Deliver
-          release 0.2.0 with YAML-defined acyclic graphs that compose registered
-          nodes and nested graphs through explicit state and port contracts."
+        statement: "Trusted relative imports, aliases, digests, and cycle detection fail closed before compilation."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: "Graph state fields, public ports, bindings, edges, routes, and reducers form a closed contract."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: "Valid fixed and conditional DAGs lower and execute deterministically through the backend while cycles fail closed."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: "Nested graphs map only declared public ports and propagate child failures without leaking private state."
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: REQ-005
+        kind: requirement
+        statement: "Phase-one regression tests and the phase-two build/link/CLI gate remain green."
         inputRefs:
           - INPUT-PHASE
         required: true
     invariants:
       - id: INV-001
-        statement: Tests remain deterministic and do not require live providers.
+        statement: Tests use fake registered components and do not require live providers.
+        inputRefs:
+          - INPUT-PHASE
+        required: true
+      - id: INV-002
+        statement: Graph execution cannot create arbitrary cycles, dynamic code, or undeclared state writes.
         inputRefs:
           - INPUT-PHASE
         required: true
     objectives:
       - id: OBJ-001
-        statement: "Define the deterministic unit-test strategy for WI-0002: Deliver
-          release 0.2.0 with YAML-defined acyclic graphs that compose registered
-          nodes and nested graphs through explicit state and port contracts."
+        statement: Verify trusted component resolution and closed graph/state validation.
         inputRefs:
           - INPUT-PHASE
         requirementRefs:
           - REQ-001
+          - REQ-002
+        invariantRefs:
+          - INV-001
+          - INV-002
+      - id: OBJ-002
+        statement: Verify deterministic DAG lowering, conditional routing, reducers, and nested public-port composition.
+        inputRefs:
+          - INPUT-PHASE
+        requirementRefs:
+          - REQ-003
+          - REQ-004
+        invariantRefs:
+          - INV-001
+          - INV-002
+      - id: OBJ-003
+        statement: Verify regression coverage and local phase delivery behavior.
+        inputRefs:
+          - INPUT-PHASE
+        requirementRefs:
+          - REQ-005
         invariantRefs:
           - INV-001
     nonGoals:
@@ -84,49 +129,209 @@ task:
     status: defined
     testCases:
       - id: TC-001
-        title: Reject invalid event before persistence
+        title: Resolve trusted imports and reject unsafe component graphs
         type: unit
         requirementLevel: required
-        purpose: Prove the validation boundary for malformed input.
+        purpose: Prove deterministic relative import, alias, digest, traversal, missing-file, duplicate-alias, and cycle behavior.
         procedure:
           executionMode: executable
-          target: Validation service unit test
+          target: Trusted component resolver
           steps:
-            - Construct an invalid event fixture.
-            - Invoke the validation service with a persistence spy.
-            - Assert rejection and verify the persistence spy was not called.
-          command: npm test -- --runInBand test/validation/service.test.ts
-        expectedOutcome: The service rejects the event and persistence receives zero calls.
+            - Load a graph with a valid relative node import and alias.
+            - Load traversal, missing, digest-mismatch, duplicate-alias, and cycle fixtures.
+            - Assert safe resolution succeeds and unsafe resolution fails before compilation.
+          command: yarn test
+        expectedOutcome: Safe imports resolve deterministically and unsafe component references fail closed.
         passCriteria: The test process exits zero and all assertions pass.
         evidenceTier: unit
         fixtureRefs:
-          - FIX-001
+          - FIX-IMPORTS
+          - FIX-IMPORT-ERRORS
         limitations:
-          - This check does not prove behavior against a real persistence
-            provider.
+          - This check does not prove filesystem behavior outside the trusted fixture root.
+      - id: TC-002
+        title: Validate graph state, ports, bindings, edges, routes, and reducers
+        type: unit
+        requirementLevel: required
+        purpose: Prove the closed graph contract and deterministic state update rules.
+        procedure:
+          executionMode: executable
+          target: Graph contract validator
+          steps:
+            - Parse a valid graph with state fields, public ports, node instances, bindings, fixed edges, conditional routes, and reducers.
+            - Parse invalid graphs with unknown paths, undeclared writes, invalid bindings, missing routes, and reducer conflicts.
+            - Assert valid graphs normalize and invalid graphs fail before backend construction.
+          command: yarn test
+        expectedOutcome: Only closed graph/state contracts normalize successfully.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-GRAPH-CONTRACT
+          - FIX-GRAPH-INVALID
+        limitations:
+          - This check does not prove provider behavior.
+      - id: TC-003
+        title: Compile and execute fixed and conditional DAGs
+        type: component
+        requirementLevel: required
+        purpose: Prove StateGraph lowering, START/END behavior, conditional routes, reachability, and cycle rejection with fake components.
+        procedure:
+          executionMode: executable
+          target: Graph compiler and injected backend
+          steps:
+            - Compile a fixed DAG and assert ordered fake-component execution.
+            - Compile a conditional DAG and assert route selection reaches the expected branch and END.
+            - Compile a cyclic or unreachable graph and assert a bounded validation error.
+          command: yarn test
+        expectedOutcome: Valid DAGs execute deterministically and malformed/cyclic graphs fail closed.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-FIXED-DAG
+          - FIX-CONDITIONAL-DAG
+          - FIX-CYCLIC-DAG
+        limitations:
+          - This check uses fake components and does not establish external provider availability.
+      - id: TC-004
+        title: Compose nested graphs through public ports
+        type: component
+        requirementLevel: required
+        purpose: Prove nested graph input/output mapping, private-state isolation, and failure propagation.
+        procedure:
+          executionMode: executable
+          target: Nested graph compiler
+          steps:
+            - Compile a parent graph containing a child graph import.
+            - Map parent input to the child public input and child public output to the parent output.
+            - Assert child-private fields cannot be read or written by the parent and child failure is returned as a bounded graph error.
+          command: yarn test
+        expectedOutcome: Nested public-port composition succeeds without private-state leakage and propagates failures.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-NESTED-GRAPH
+        limitations:
+          - This check does not claim durable checkpoint or interrupt/resume behavior.
+      - id: TC-005
+        title: Preserve phase-one regression and local CLI behavior
+        type: unit
+        requirementLevel: required
+        purpose: Prove direct-node tests remain green and graph validate/inspect/build/link surfaces are deterministic.
+        procedure:
+          executionMode: executable
+          target: Repository regression and CLI suite
+          steps:
+            - Run all phase-one and phase-two tests.
+            - Validate and inspect a graph fixture without provider access.
+            - Build and link the package through the user-local prefix.
+          command: yarn test
+        expectedOutcome: All prior tests and graph-specific tests pass without live providers.
+        passCriteria: The test process exits zero and all assertions pass.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-FIXED-DAG
+        limitations:
+          - This check does not prove live provider, deployment, or production behavior.
     fixtures:
-      - id: FIX-001
-        name: invalid-event
-        purpose: Provide a stable malformed event for the negative path.
-        setup: Create the event object with a missing required field and a persistence
-          spy.
-        teardown: Reset the spy after the test.
+      - id: FIX-IMPORTS
+        name: trusted-imports
+        purpose: Provide a graph, node, alias, and digest fixture under one trusted root.
+        setup: Load repository-local component fixtures.
+        teardown: No external state is created.
         sourceRefs:
-          - "#artifact/FIXTURE-INVALID-EVENT"
+          - "#artifact/FIXTURE-IMPORTS"
+      - id: FIX-IMPORT-ERRORS
+        name: unsafe-imports
+        purpose: Provide traversal, missing, digest mismatch, duplicate alias, and cycle fixtures.
+        setup: Load repository-local negative component fixtures.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-IMPORT-ERRORS"
+      - id: FIX-GRAPH-CONTRACT
+        name: graph-contract
+        purpose: Provide a valid closed graph with state, ports, bindings, routes, and reducers.
+        setup: Load a graph YAML fixture.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-GRAPH-CONTRACT"
+      - id: FIX-GRAPH-INVALID
+        name: invalid-graph-contract
+        purpose: Provide invalid state paths, writes, bindings, routes, and reducer fixtures.
+        setup: Load repository-local invalid graph fixtures.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-GRAPH-INVALID"
+      - id: FIX-FIXED-DAG
+        name: fixed-dag
+        purpose: Provide a valid fixed-edge DAG for fake component execution.
+        setup: Load a graph fixture with START, ordered nodes, and END.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-FIXED-DAG"
+      - id: FIX-CONDITIONAL-DAG
+        name: conditional-dag
+        purpose: Provide a valid conditional route graph with named cases and a default.
+        setup: Load a graph fixture with a route selector and branch nodes.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-CONDITIONAL-DAG"
+      - id: FIX-CYCLIC-DAG
+        name: cyclic-dag
+        purpose: Provide a graph containing an arbitrary cycle for fail-closed validation.
+        setup: Load a graph fixture with a back edge.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-CYCLIC-DAG"
+      - id: FIX-NESTED-GRAPH
+        name: nested-graph
+        purpose: Provide a parent graph, child graph, and public-port mappings.
+        setup: Load nested repository-local graph fixtures.
+        teardown: No external state is created.
+        sourceRefs:
+          - "#artifact/FIXTURE-NESTED-GRAPH"
     coverage:
       - id: COV-001
         requirementRefs:
           - REQ-001
+          - REQ-002
         invariantRefs:
           - INV-001
+          - INV-002
         objectiveRefs:
           - OBJ-001
         testCaseRefs:
           - TC-001
-        rationale: The unit test directly exercises rejection and the no-persistence
-          side effect.
+          - TC-002
+        rationale: Resolver and graph-contract tests cover trusted loading and closed state/topology inputs.
+      - id: COV-002
+        requirementRefs:
+          - REQ-003
+          - REQ-004
+        invariantRefs:
+          - INV-001
+          - INV-002
+        objectiveRefs:
+          - OBJ-002
+        testCaseRefs:
+          - TC-003
+          - TC-004
+        rationale: Component tests cover fixed/conditional DAG execution and nested public-port composition.
+      - id: COV-003
+        requirementRefs:
+          - REQ-005
+        invariantRefs:
+          - INV-001
+        objectiveRefs:
+          - OBJ-003
+        testCaseRefs:
+          - TC-005
+        rationale: Regression and release-gate testing preserves phase-one behavior while adding graph coverage.
     minimumRequiredTestCaseRefs:
       - TC-001
+      - TC-002
+      - TC-003
+      - TC-004
+      - TC-005
     recommendedTestCaseRefs: []
     evidenceLimitations:
       - The strategy defines tests but does not execute them or prove provider,

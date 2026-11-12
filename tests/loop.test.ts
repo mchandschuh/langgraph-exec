@@ -59,3 +59,14 @@ test('bounded-loop sample is a real inspectable loop artifact', async () => {
   assert.equal(loop.definition.loop.maxSteps, 6);
   assert.equal(loop.inspect.resolution && (loop.inspect.resolution as Record<string, unknown>).bounded, true);
 });
+
+test('loop execution emits lifecycle and iteration debug events', async () => {
+  const loop = await compileLoopFile(fixture('early-exit.yml'), { components: fake });
+  const events: Array<{ event: string; data?: Record<string, unknown> }> = [];
+  const result = await loop.invoke({}, (event) => events.push(event));
+  assert.equal(result.status, 'success');
+  assert.equal(events[0]?.event, 'loop.start');
+  assert.ok(events.some((event) => event.event === 'loop.iteration.input'));
+  assert.ok(events.some((event) => event.event === 'loop.iteration.output'));
+  assert.equal(events.at(-1)?.event, 'loop.exit');
+});

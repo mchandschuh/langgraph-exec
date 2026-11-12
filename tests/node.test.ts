@@ -80,3 +80,12 @@ test('CLI validate and inspect remain provider-free and invalid input is nonzero
   assert.equal(await main(['inspect', fixture('valid-node.yaml'), '--resolved', '--format', 'json']), 0);
   assert.equal(await main(['validate', fixture('invalid-yaml.yaml')]), 1);
 });
+
+test('node execution emits debug identity and output events', async () => {
+  const node = await load('valid-node.yaml');
+  const events: Array<{ event: string; data?: Record<string, unknown> }> = [];
+  const response = await executeNode(node, { input: { task: 'debug node' } }, async () => successResponse, (event) => events.push(event));
+  assert.equal(response.status, 'success');
+  assert.deepEqual(events.map((event) => event.event), ['node.input', 'node.output']);
+  assert.equal(events[0]?.data?.node, 'direct-completion');
+});

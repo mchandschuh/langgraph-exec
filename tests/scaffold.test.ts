@@ -13,3 +13,7 @@ test('CLI version is provider-free and succeeds', async () => {
 test('execution command reports a missing component with a stable nonzero result', async () => {
   assert.equal(await main(['run', 'example.yml', '--input', 'input.json']), 1);
 });
+
+test('CLI accepts --debug without changing help success behavior', async () => {
+  assert.equal(await main(['--debug', '--help']), 0);
+});

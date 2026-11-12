@@ -71,3 +71,13 @@ test('phase-two sample composes an imported child graph through public ports', a
   assert.deepEqual(await graph.invoke({ task: 'sample task' }), { result: { task: 'sample task' } });
   assert.equal(graph.definition.name, 'sample-nested-answer');
 });
+
+test('graph execution emits node and port-flow debug events', async () => {
+  const graph = await compileGraphFile(graphFixture('fixed-dag.yml'), { components: fakeComponents });
+  const events: Array<{ event: string; data?: Record<string, unknown> }> = [];
+  const result = await graph.invoke({ message: 'debug graph' }, (event) => events.push(event));
+  assert.deepEqual(result, { result: 'debug graph-first-second' });
+  assert.ok(events.some((event) => event.event === 'graph.node.input' && event.data?.node === 'first'));
+  assert.ok(events.some((event) => event.event === 'graph.port.flow' && event.data?.from === 'input.message'));
+  assert.ok(events.some((event) => event.event === 'graph.node.output' && event.data?.node === 'second'));
+});

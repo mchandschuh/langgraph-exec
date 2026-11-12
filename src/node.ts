@@ -1,6 +1,6 @@
 import { parseDocument } from 'yaml';
 import { complete, REQUEST_SCHEMA, RESPONSE_SCHEMA } from 'llm';
-import type { LlmRequest, LlmResponse, Thinking } from 'llm';
+import type { DebugSink, LlmRequest, LlmResponse, Thinking } from 'llm';
 
 export const NODE_SCHEMA = 'https://schemas.handschuh.dev/langgraph-exec/node/v1' as const;
 export const NODE_IMPLEMENTATION = 'llm.complete' as const;
@@ -37,7 +37,12 @@ export interface NodeInput {
   readonly input?: Readonly<Record<string, unknown>>;
 }
 
-export type CompletionService = (request: LlmRequest) => Promise<LlmResponse>;
+export type CompletionService = (request: LlmRequest, debug?: DebugSink) => Promise<LlmResponse>;
+
+function debug(sink: DebugSink | undefined, event: string, data: Record<string, unknown>): void {
+  if (!sink) return;
+  sink({ event, timestamp: new Date().toISOString(), data });
+}
 
 export class NodeDefinitionError extends Error {
   readonly code = 'NODE_DEFINITION_INVALID' as const;
@@ -279,12 +284,13 @@ function inputFailure(error: unknown): LlmResponse {
   };
 }
 
-export const defaultCompletionService: CompletionService = async (request) => (await complete(request)) as LlmResponse;
+export const defaultCompletionService: CompletionService = async (request, debugSink) => (await complete(request, { debug: debugSink })) as LlmResponse;
 
 export async function executeNode(
   definition: NodeDefinition,
   input: NodeInput,
   service: CompletionService = defaultCompletionService,
+  debugSink?: DebugSink,
 ): Promise<LlmResponse> {
   let request: LlmRequest;
   try {
@@ -292,10 +298,15 @@ export async function executeNode(
   } catch (error) {
     return inputFailure(error);
   }
+  debug(debugSink, 'node.input', { node: definition.name, implementation: definition.implementation, input: input.input ?? {}, parameters: input.parameters ?? {} });
   try {
-    return await service(request);
+    const response = await service(request, debugSink);
+    debug(debugSink, 'node.output', { node: definition.name, implementation: definition.implementation, output: response });
+    return response;
   } catch {
-    return providerFailure();
+    const response = providerFailure();
+    debug(debugSink, 'node.output', { node: definition.name, implementation: definition.implementation, output: response });
+    return response;
   }
 }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { executeJoin, executeParallel, joinParallel, selectControlRoute } from '../src/controls.js';
+import { executeJoin, executeParallel, joinParallel, mapControl, selectControlRoute } from '../src/controls.js';
 
 test('control.parallel runs bounded branches concurrently and captures outputs', async () => {
   const events: string[] = [];
@@ -36,4 +36,11 @@ test('control.switch selects declared cases and uses the default route', () => {
   assert.equal(selectControlRoute({ state: { choice: 'yes' } }, contract).route, 'affirm');
   assert.equal(selectControlRoute({ state: { choice: 'maybe' } }, contract).route, 'unknown');
   assert.throws(() => selectControlRoute({}, { selector: 'state.choice', cases: {}, default: '' }), /default/);
+});
+
+test('control.map enforces a finite item limit and preserves order', async () => {
+  const mapped = await mapControl([1, 2, 3], async (value, index) => `${index}:${value * 2}`, 3);
+  assert.deepEqual(mapped, { status: 'success', values: ['0:2', '1:4', '2:6'] });
+  const limited = await mapControl([1, 2, 3], async (value) => value, 2);
+  assert.equal(limited.status, 'item_limit_exceeded');
 });

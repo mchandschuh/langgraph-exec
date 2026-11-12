@@ -96,3 +96,12 @@ export function selectControlRoute(input: Readonly<Record<string, unknown>>, con
   emit(debug, 'control.switch.selected', { selector: contract.selector, value, route });
   return { status: 'selected', route, value };
 }
+
+export async function mapControl<TInput, TOutput>(items: readonly TInput[], mapper: (item: TInput, index: number, debug?: DebugSink) => Promise<TOutput>, maxItems: number, debug?: DebugSink): Promise<{ status: 'success' | 'item_limit_exceeded'; values: readonly TOutput[]; error?: string }> {
+  if (!Number.isInteger(maxItems) || maxItems < 0) throw new ControlNodeError('MAP_LIMIT_INVALID', 'maxItems must be a non-negative integer.');
+  if (items.length > maxItems) return { status: 'item_limit_exceeded', values: [], error: 'Map item limit exceeded.' };
+  emit(debug, 'control.map.start', { items: items.length, maxItems });
+  const values = await Promise.all(items.map((item, index) => mapper(item, index, debug)));
+  emit(debug, 'control.map.success', { items: values.length, output: values });
+  return { status: 'success', values };
+}

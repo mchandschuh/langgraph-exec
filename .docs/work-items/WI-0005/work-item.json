@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0005",
-  "status": "planned",
+  "status": "complete",
   "title": "Align execution with LangGraph built-in capabilities",
   "type": "refactor",
   "objective": "Refactor langgraph-exec so its YAML compiler and application-specific policy layer use LangGraph's tested runtime capabilities instead of duplicating graph scheduling, looping, retry, timeout, fan-out, fan-in, and execution observability behavior.",

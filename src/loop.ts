@@ -8,7 +8,8 @@ import { executeNode, parseNodeDefinition } from './node.js';
 import { compileGraphFile, GraphDefinitionError } from './graph.js';
 import type { ComponentPort, GraphComponent, GraphPort, GraphStateField } from './graph.js';
 
-export const LOOP_SCHEMA = 'https://schemas.handschuh.dev/langgraph-exec/loop/v1' as const;
+export const CONTROL_LOOP_SCHEMA = 'https://schemas.handschuh.dev/langgraph-exec/control-loop/v1' as const;
+export const LOOP_SCHEMA = CONTROL_LOOP_SCHEMA;
 
 export type ExhaustionPolicy = 'error' | 'return';
 export type LoopStatus = 'success' | 'iteration_exhausted' | 'step_budget_exhausted' | 'body_error';
@@ -26,8 +27,8 @@ export interface LoopContract {
   readonly onExhaustion: ExhaustionPolicy;
 }
 export interface LoopDefinition {
-  readonly schema: typeof LOOP_SCHEMA;
-  readonly kind: 'loop';
+  readonly schema: typeof CONTROL_LOOP_SCHEMA;
+  readonly kind: 'control.loop';
   readonly name: string;
   readonly imports: readonly LoopImport[];
   readonly state: Readonly<Record<string, GraphStateField>>;
@@ -69,12 +70,12 @@ function parseState(value: unknown): Record<string, GraphStateField> {
 export function parseLoopDefinition(source: string): LoopDefinition {
   let value: unknown;
   try { const document = parseDocument(source, { schema: 'core', strict: true, uniqueKeys: true }); if (document.errors.length > 0) throw document.errors[0]; value = document.toJS({ maxAliasCount: 0 }); } catch { throw new LoopDefinitionError('The loop YAML is not valid or uses unsupported YAML features.'); }
-  const loop = record(value, 'loop'); keys(loop, ['schema', 'kind', 'name', 'imports', 'state', 'ports', 'body', 'loop'], 'loop'); if (loop.schema !== LOOP_SCHEMA) throw new LoopDefinitionError(`schema must be ${LOOP_SCHEMA}.`); if (loop.kind !== 'loop') throw new LoopDefinitionError('kind must be loop.');
+  const loop = record(value, 'loop'); keys(loop, ['schema', 'kind', 'name', 'imports', 'state', 'ports', 'body', 'loop'], 'loop'); if (loop.schema !== CONTROL_LOOP_SCHEMA) throw new LoopDefinitionError(`schema must be ${CONTROL_LOOP_SCHEMA}.`); if (loop.kind !== 'control.loop') throw new LoopDefinitionError('kind must be control.loop.');
   const imports: LoopImport[] = []; for (const [index, raw] of array(loop.imports ?? [], 'imports').entries()) { const item = record(raw, `imports[${index}]`); keys(item, ['path', 'alias', 'sha256'], `imports[${index}]`); const sha256 = item.sha256 === undefined ? undefined : string(item.sha256, `imports[${index}].sha256`); if (sha256 && !SHA256.test(sha256)) throw new LoopDefinitionError(`imports[${index}].sha256 must be a lowercase SHA-256 digest.`); imports.push({ path: string(item.path, `imports[${index}].path`), alias: identifier(item.alias, `imports[${index}].alias`), ...(sha256 ? { sha256 } : {}) }); }
   if (new Set(imports.map((item) => item.alias)).size !== imports.length) throw new LoopDefinitionError('Import aliases must be unique.');
   const ports = record(loop.ports, 'ports'); keys(ports, ['inputs', 'outputs'], 'ports'); const body = record(loop.body, 'body'); keys(body, ['component', 'inputs', 'outputs'], 'body');
   const contract = record(loop.loop, 'loop'); keys(contract, ['entry', 'body', 'exit', 'condition', 'counter', 'maxIterations', 'maxSteps', 'onExhaustion'], 'loop'); const onExhaustion = contract.onExhaustion ?? 'error'; if (onExhaustion !== 'error' && onExhaustion !== 'return') throw new LoopDefinitionError('loop.onExhaustion must be error or return.');
-  return { schema: LOOP_SCHEMA, kind: 'loop', name: identifier(loop.name, 'name'), imports, state: parseState(loop.state), ports: { inputs: parsePorts(ports.inputs, 'ports.inputs'), outputs: parsePorts(ports.outputs, 'ports.outputs') }, body: { component: identifier(body.component, 'body.component'), inputs: Object.fromEntries(Object.entries(record(body.inputs, 'body.inputs')).map(([name, path]) => [identifier(name, `body.inputs.${name}`), string(path, `body.inputs.${name}`)])), outputs: Object.fromEntries(Object.entries(record(body.outputs, 'body.outputs')).map(([name, path]) => [identifier(name, `body.outputs.${name}`), string(path, `body.outputs.${name}`)])) }, loop: { entry: identifier(contract.entry, 'loop.entry'), body: identifier(contract.body, 'loop.body'), exit: string(contract.exit, 'loop.exit'), condition: string(contract.condition, 'loop.condition'), counter: identifier(contract.counter, 'loop.counter'), maxIterations: integer(contract.maxIterations, 'loop.maxIterations', 1, 1000), maxSteps: integer(contract.maxSteps, 'loop.maxSteps', 1, 10000), onExhaustion: onExhaustion as ExhaustionPolicy } };
+  return { schema: CONTROL_LOOP_SCHEMA, kind: 'control.loop', name: identifier(loop.name, 'name'), imports, state: parseState(loop.state), ports: { inputs: parsePorts(ports.inputs, 'ports.inputs'), outputs: parsePorts(ports.outputs, 'ports.outputs') }, body: { component: identifier(body.component, 'body.component'), inputs: Object.fromEntries(Object.entries(record(body.inputs, 'body.inputs')).map(([name, path]) => [identifier(name, `body.inputs.${name}`), string(path, `body.inputs.${name}`)])), outputs: Object.fromEntries(Object.entries(record(body.outputs, 'body.outputs')).map(([name, path]) => [identifier(name, `body.outputs.${name}`), string(path, `body.outputs.${name}`)])) }, loop: { entry: identifier(contract.entry, 'loop.entry'), body: identifier(contract.body, 'loop.body'), exit: string(contract.exit, 'loop.exit'), condition: string(contract.condition, 'loop.condition'), counter: identifier(contract.counter, 'loop.counter'), maxIterations: integer(contract.maxIterations, 'loop.maxIterations', 1, 1000), maxSteps: integer(contract.maxSteps, 'loop.maxSteps', 1, 10000), onExhaustion: onExhaustion as ExhaustionPolicy } };
 }
 
 function pathValue(value: Readonly<Record<string, unknown>>, path: string): unknown { const parts = path.split('.'); if (parts[0] === 'state') parts.shift(); if (parts[0] === 'input') parts.shift(); let current: unknown = value; for (const part of parts) { if (!isRecord(current) || !own(current, part)) return undefined; current = current[part]; } return current; }

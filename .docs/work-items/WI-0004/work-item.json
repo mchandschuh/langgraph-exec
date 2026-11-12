@@ -1,0 +1,257 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0004",
+  "status": "active",
+  "title": "Implement registered control-flow node types",
+  "type": "feature",
+  "objective": "Deliver a versioned control-node registry that provides explicit bounded loop, parallel, join, switch, map, try, retry, timeout, return, and fail semantics.",
+  "repository": {
+    "root": "/home/michael/src/github/langgraph-exec",
+    "authority": "github"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "main"
+    },
+    "branch": {
+      "name": "wi-0004-control-nodes",
+      "created": false,
+      "rationale": "The branch isolates the control-node registry and loop schema migration."
+    }
+  },
+  "request": {
+    "source": "conversation",
+    "text": "Create WI-0004 for langgraph-exec: Implement registered control-flow node types and migrate loop to control.loop.",
+    "sha256": "371df574410fa78f7a38e0a825e9fdcda6b24581fbe75cedbcfea1866dbcb0c5"
+  },
+  "scope": [
+    {
+      "name": "control-loop",
+      "description": "Migrate the existing loop/v1 artifact and kind: loop contract to control-loop/v1 and kind: control.loop with explicit finite counters and budgets.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-parallel",
+      "description": "Add bounded fan-out execution for independent registered components with explicit branch limits and isolated writes.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-join",
+      "description": "Add barrier/join semantics for parallel branches with explicit reducer-based merge behavior.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-switch",
+      "description": "Add a registered multi-way selector node with explicit cases and a required default route.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-map",
+      "description": "Add bounded collection mapping over a registered component with deterministic ordering and item limits.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-try",
+      "description": "Add structured success/failure branching around a registered component without silently swallowing errors.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-retry",
+      "description": "Add bounded retry behavior with explicit attempt limits, retryable error selection, and exhaustion status.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-timeout",
+      "description": "Add bounded execution deadlines and structured timeout results for registered components.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-return",
+      "description": "Add explicit branch/graph termination with declared output ports.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    },
+    {
+      "name": "control-fail",
+      "description": "Add an intentional structured failure node with stable error code, message, and port behavior.",
+      "reason": "Control flow must be explicit, bounded, versioned, and independently testable."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "persistence",
+      "description": "Do not implement checkpointing, interrupt/resume, or durable side-effect receipts.",
+      "reason": "These require a later persistence work item.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "live-providers",
+      "description": "Do not require live provider calls for control-node unit evidence.",
+      "reason": "Fake components provide deterministic evidence.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "arbitrary-code",
+      "description": "Do not allow control nodes to execute arbitrary JavaScript, shell, or dynamic code.",
+      "reason": "Only registered components may execute.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0004_REQ_001",
+        "name": "control-loop",
+        "description": "Migrate the existing loop/v1 artifact and kind: loop contract to control-loop/v1 and kind: control.loop with explicit finite counters and budgets.",
+        "reason": "The control.loop control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_001_AC_001",
+            "description": "Legacy loop/v1 and kind: loop are rejected by default; control-loop/v1 and kind: control.loop validate, inspect, and execute with bounded statuses."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_002",
+        "name": "control-parallel",
+        "description": "Add bounded fan-out execution for independent registered components with explicit branch limits and isolated writes.",
+        "reason": "The control.parallel control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_002_AC_001",
+            "description": "Parallel branches execute deterministically under a finite branch budget and conflicting writes fail closed."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_003",
+        "name": "control-join",
+        "description": "Add barrier/join semantics for parallel branches with explicit reducer-based merge behavior.",
+        "reason": "The control.join control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_003_AC_001",
+            "description": "Join waits for all declared branches, applies reducers, and rejects missing/conflicting branch outputs."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_004",
+        "name": "control-switch",
+        "description": "Add a registered multi-way selector node with explicit cases and a required default route.",
+        "reason": "The control.switch control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_004_AC_001",
+            "description": "Switch selects a declared case deterministically and routes unknown values through the declared default."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_005",
+        "name": "control-map",
+        "description": "Add bounded collection mapping over a registered component with deterministic ordering and item limits.",
+        "reason": "The control.map control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_005_AC_001",
+            "description": "Map rejects unbounded collections, enforces the item budget, and returns deterministic ordered results."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_006",
+        "name": "control-try",
+        "description": "Add structured success/failure branching around a registered component without silently swallowing errors.",
+        "reason": "The control.try control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_006_AC_001",
+            "description": "Try emits explicit success or failure branch state and preserves bounded error information."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_007",
+        "name": "control-retry",
+        "description": "Add bounded retry behavior with explicit attempt limits, retryable error selection, and exhaustion status.",
+        "reason": "The control.retry control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_007_AC_001",
+            "description": "Retry performs only finite attempts, retries only declared failures, and returns deterministic exhaustion."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_008",
+        "name": "control-timeout",
+        "description": "Add bounded execution deadlines and structured timeout results for registered components.",
+        "reason": "The control.timeout control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_008_AC_001",
+            "description": "Timeout returns a stable timeout result and prevents late component output from mutating graph state."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_009",
+        "name": "control-return",
+        "description": "Add explicit branch/graph termination with declared output ports.",
+        "reason": "The control.return control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_009_AC_001",
+            "description": "Return terminates the active branch with only declared output data and stable terminal status."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_010",
+        "name": "control-fail",
+        "description": "Add an intentional structured failure node with stable error code, message, and port behavior.",
+        "reason": "The control.fail control capability is required for complete declarative workflow control flow.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_010_AC_001",
+            "description": "Fail produces a bounded structured error without throwing unbounded internal details."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0004/steps/"
+}

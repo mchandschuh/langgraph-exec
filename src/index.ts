@@ -13,7 +13,7 @@ export {
   resolveRequest,
 } from './node.js';
 export { compileGraphFile, componentRegistry, GRAPH_SCHEMA, GraphDefinitionError, parseGraphDefinition } from './graph.js';
-export { compileLoopFile, LOOP_SCHEMA, LoopDefinitionError, parseLoopDefinition } from './loop.js';
+export { compileLoopFile, CONTROL_LOOP_SCHEMA, LOOP_SCHEMA, LoopDefinitionError, parseLoopDefinition } from './loop.js';
 export type {
   CompletionService,
   NodeDefinition,

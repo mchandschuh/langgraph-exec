@@ -49,7 +49,7 @@ test('nested graph loop bodies compose through public ports', async () => {
 
 test('loop inspection is provider-free and exposes effective limits', async () => {
   const loop = await compileLoopFile(fixture('early-exit.yml'), { components: fake });
-  assert.equal(loop.inspect.kind, 'loop');
+  assert.equal(loop.inspect.kind, 'control.loop');
   assert.deepEqual(loop.inspect.loop, { entry: 'body', body: 'body', exit: 'done', condition: 'done', counter: 'iterations', maxIterations: 5, maxSteps: 10, onExhaustion: 'error' });
 });
 

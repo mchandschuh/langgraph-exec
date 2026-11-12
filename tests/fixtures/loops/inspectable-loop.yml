@@ -1,5 +1,5 @@
-schema: https://schemas.handschuh.dev/langgraph-exec/loop/v1
-kind: loop
+schema: https://schemas.handschuh.dev/langgraph-exec/control-loop/v1
+kind: control.loop
 name: inspectable-loop
 imports:
   - path: inspectable-node.yml

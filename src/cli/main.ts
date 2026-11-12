@@ -41,7 +41,7 @@ async function loadNode(path: string) {
 
 async function loadComponent(path: string) {
   const source = await readFile(resolve(path), 'utf8');
-  if (source.includes('kind: loop')) return compileLoopFile(path);
+  if (source.includes('kind: control.loop')) return compileLoopFile(path);
   return source.includes('kind: graph') ? compileGraphFile(path) : parseNodeDefinition(source);
 }
 
@@ -95,7 +95,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
       const component = await loadComponent(cleanArgs[1]);
       const input = JSON.parse(await readFile(resolve(cleanArgs[3]), 'utf8')) as Parameters<typeof executeNode>[1];
       const response = 'invoke' in component
-        ? ('definition' in component && component.definition.kind === 'loop'
+        ? ('definition' in component && component.definition.kind === 'control.loop'
           ? await component.invoke(input.input ?? {}, debug)
           : { schema: 'https://schemas.handschuh.dev/langgraph-exec/response/v1', status: 'success', output: await component.invoke(input.input ?? {}, debug), errors: [] })
         : await executeNode(component, input, undefined, debug);

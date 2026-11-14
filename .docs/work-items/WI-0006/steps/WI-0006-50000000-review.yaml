@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 ---
 schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
 workItemId: WI-0006
@@ -7,7 +7,7 @@ taskUid: WI-0006-50000000
 orderKey: "50000000"
 parentTaskUid: WI-0006-00000000
 taskType: review
-processingStatus: planned
+processingStatus: processing_completed
 title: Review the one-runtime LangGraph refactor (WI-0006)
 objective: Review scope, deletion safety, LangGraph ownership, compatibility, and evidence limitations.
 references:
@@ -42,7 +42,7 @@ governance:
 dependsOn:
   - WI-0006-40000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
@@ -84,6 +84,43 @@ task:
         ref: README.md
         purpose: Philosophy and boundary documentation.
   result:
-    status: planned
-    decision: pending
-    summary: Pending review.
+    status: complete
+    decision: accepted
+    summary: The refactor establishes the intended LangGraph-first execution boundary, removes the standalone controls runtime, preserves compiler/provider contracts, and is supported by provider-free validation.
+    criteriaEvaluations:
+      - criterionRef: CRIT-001
+        status: satisfied
+        summary: Graph and loop paths use the compiled LangGraph-backed runtime surface and shared component adapter.
+      - criterionRef: CRIT-002
+        status: satisfied
+        summary: src/controls.ts, its standalone tests, and stale consumer/documentation references were removed; no replacement helper runtime was added.
+      - criterionRef: CRIT-003
+        status: satisfied
+        summary: Existing schemas, trusted imports, ports, provider boundaries, and bounded-loop tests remain green.
+      - criterionRef: CRIT-004
+        status: satisfied
+        summary: Evidence is local/provider-free and explicitly excludes persistence, interrupt/resume, durable side-effect recovery, and production readiness.
+    findings:
+      - id: FIND-001
+        severity: informational
+        status: accepted
+        message: The conversation sample's trusted component remains TypeScript so tests can inject a deterministic CompletionService; workflow topology and retry/loop execution are declarative/LangGraph-backed.
+        requestedChange: None for WI-0006.
+    evidence:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0006|40000000
+        claim: Typecheck, 38 provider-free tests, build, sample validation, and static audit passed.
+        tier: cli-audit
+      - id: EVID-002
+        kind: repository-state
+        ref: "#repository-state/HEAD"
+        claim: WI-0006 implementation and evidence commits are present on main with a clean worktree.
+        tier: inspection
+      - id: EVID-003
+        kind: inspection
+        ref: README.md
+        claim: README documents the compiler/runtime responsibility split and LangGraph runtime authority.
+        tier: inspection
+    limitations:
+      - No live provider, persistence, interrupt/resume, durable side-effect recovery, or production evidence is claimed.

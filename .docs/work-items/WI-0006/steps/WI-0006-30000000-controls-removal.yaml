@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 ---
 schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
 workItemId: WI-0006
@@ -7,7 +7,7 @@ taskUid: WI-0006-30000000
 orderKey: "30000000"
 parentTaskUid: WI-0006-00000000
 taskType: implementation
-processingStatus: planned
+processingStatus: processing_completed
 title: Migrate consumers and remove the standalone controls runtime (WI-0006)
 objective: Migrate the conversation sample and control tests to compiled LangGraph behavior, then delete src/controls.ts and stale documentation.
 references:
@@ -47,7 +47,7 @@ governance:
 dependsOn:
   - WI-0006-20000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -91,6 +91,12 @@ task:
       - Remove stale controls documentation and update README.md/SKILL.md.
       - Audit package exports and generated build outputs.
   result:
-    status: planned
+    status: complete
     implementation:
-      summary: Pending implementation.
+      summary: Migrated the two-LLM sample to a declarative control-loop artifact with native LangGraph retryPolicy/error handling, removed src/controls.ts and tests/control.test.ts, and updated sample documentation.
+      commits:
+        - 4913014
+      validation:
+        - yarn typecheck
+        - yarn test
+        - yarn build

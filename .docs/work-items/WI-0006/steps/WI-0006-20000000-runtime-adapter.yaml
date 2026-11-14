@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 ---
 schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
 workItemId: WI-0006
@@ -7,7 +7,7 @@ taskUid: WI-0006-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0006-00000000
 taskType: implementation
-processingStatus: planned
+processingStatus: processing_completed
 title: Implement the unified LangGraph component adapter and runtime (WI-0006)
 objective: Compile graph and control-loop definitions to one LangGraph runtime using a reusable trusted-component adapter.
 references:
@@ -54,7 +54,7 @@ governance:
 dependsOn:
   - WI-0006-10000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -98,6 +98,12 @@ task:
       - Forward actual LangGraph stream/task/debug behavior through the public runtime boundary.
       - Preserve repository-owned budget validation and public-port projection.
   result:
-    status: planned
+    status: complete
     implementation:
-      summary: Pending implementation.
+      summary: Extracted a reusable component-to-LangGraph adapter, reused it for imported graph/node components and loop bodies, exposed a shared compiled runtime surface, and preserved existing DSL contracts.
+      commits:
+        - 94bcf9c
+        - fea9d5d
+      validation:
+        - yarn typecheck
+        - yarn test

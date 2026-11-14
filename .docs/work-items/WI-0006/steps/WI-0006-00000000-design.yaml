@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 ---
 schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
 workItemId: WI-0006
@@ -7,7 +7,7 @@ taskUid: WI-0006-00000000
 orderKey: "00000000"
 parentTaskUid: null
 taskType: design
-processingStatus: planned
+processingStatus: processing_completed
 title: Define the authoritative LangGraph execution architecture (WI-0006)
 objective: Define the migration from standalone control helpers to one compiled LangGraph runtime while preserving the YAML compiler and trust boundaries.
 references:
@@ -44,7 +44,7 @@ governance:
   requiredForExecution: true
 dependsOn: []
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
@@ -122,18 +122,18 @@ task:
     outputs:
       - id: OUT-001
         category: responsibility-allocation
-        status: planned
+        status: complete
         sourceRefs: [REF-001, REF-002, REF-003, REF-004]
         description: Accepted architecture and migration boundary.
       - id: OUT-002
         category: implementation-handoff
-        status: planned
+        status: complete
         sourceRefs: [REF-003, REF-005]
         description: Adapter, runtime, sample, and cleanup design sufficient for implementation without inventing a second execution model.
     verificationObligations:
       - id: VER-001
         kind: design-review
-        status: planned
+        status: deferred
         sourceRefs: [REF-001, REF-002, REF-003, REF-004]
         method:
           type: design-review
@@ -147,8 +147,15 @@ task:
       - id: Q-001
         question: What exact declarative graph form is needed for the conversation sample's bounded failure branch?
         reason: The sample currently expresses try/retry behavior in TypeScript.
-        status: planned
+        status: deferred
         impact: 80
         confidence: 80
         referenceRefs: [REF-005]
         suggestedTaskType: implementation
+    result:
+      status: complete
+      summary: The design allocated compiler/trust responsibilities to this repository and graph execution responsibilities to LangGraph, with controls.ts deletion and the conversation-loop migration selected as the implementation path.
+      decisions:
+        - LangGraph StateGraph is the authoritative graph execution runtime.
+        - Trusted components are adapted once at the LangGraph node boundary.
+        - The conversation sample retains a trusted TypeScript component only for injected provider testing; its workflow topology and retry/loop execution are declarative/LangGraph-backed.

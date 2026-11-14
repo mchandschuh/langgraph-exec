@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 ---
 schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
 workItemId: WI-0006
@@ -7,7 +7,7 @@ taskUid: WI-0006-10000000
 orderKey: "10000000"
 parentTaskUid: WI-0006-00000000
 taskType: test-strategy
-processingStatus: planned
+processingStatus: processing_completed
 title: Define tests for one authoritative LangGraph runtime (WI-0006)
 objective: Define provider-free evidence for adapter reuse, native execution, sample migration, controls removal, and documentation boundaries.
 references:
@@ -43,7 +43,7 @@ governance:
 dependsOn:
   - WI-0006-00000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
@@ -154,3 +154,7 @@ task:
       - Do not use live providers or credentials.
       - Do not claim checkpoint persistence, interrupt/resume, or durable side-effect recovery.
       - Do not preserve standalone control helper tests merely to preserve the deleted runtime path.
+  result:
+    status: complete
+    summary: Defined provider-free coverage for the shared adapter, native graph policies, conversation-loop migration, controls deletion, compiler boundaries, CLI validation, and duplicate-runtime auditing.
+    testCasesDefined: 7

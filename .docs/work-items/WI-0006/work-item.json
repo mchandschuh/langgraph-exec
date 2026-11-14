@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0006",
-  "status": "planned",
+  "status": "complete",
   "title": "Establish one authoritative LangGraph execution path",
   "type": "refactor",
   "objective": "Retire the standalone controls.ts execution helpers and make compiled LangGraph the sole runtime authority for declarative graph behavior.",

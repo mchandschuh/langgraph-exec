@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 ---
 schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
 workItemId: WI-0006
@@ -7,7 +7,7 @@ taskUid: WI-0006-40000000
 orderKey: "40000000"
 parentTaskUid: WI-0006-00000000
 taskType: validation
-processingStatus: planned
+processingStatus: processing_completed
 title: Validate the authoritative LangGraph runtime refactor (WI-0006)
 objective: Validate the unified runtime, migrated sample, controls deletion, documentation, and evidence boundaries.
 references:
@@ -46,7 +46,7 @@ governance:
 dependsOn:
   - WI-0006-30000000
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -104,12 +104,32 @@ task:
         targetRefs: [TARGET-REPOSITORY]
         method:
           executionMode: executable
-          command: yarn build && yarn start validate samples/direct-completion/node.yml && yarn start validate samples/nested-graph/graph.yml && yarn start validate samples/bounded-loop/loop.yml
+          command: yarn build && yarn start validate samples/direct-completion/node.yml && yarn start validate samples/nested-graph/graph.yml && yarn start validate samples/bounded-loop/loop.yml && yarn start validate samples/two-llm-conversation/alpha.yml && yarn start validate samples/two-llm-conversation/beta.yml && yarn start validate samples/two-llm-conversation/conversation-loop.yml
         expectedOutcome: All retained definition forms pass provider-free validation.
         required: true
     nonGoals:
       - Do not use live providers or credentials.
       - Do not claim checkpoint persistence, interrupt/resume, durable side-effect recovery, or production readiness.
   result:
-    status: planned
-    summary: Pending validation.
+    status: passed
+    summary: Provider-free validation passed after controls removal and sample migration.
+    executions:
+      - id: EXEC-001
+        procedureRef: VAL-001
+        status: passed
+        command: yarn typecheck && yarn test && yarn build
+        result: Typecheck, 38-test suite, and build passed.
+        evidenceTier: cli-audit
+      - id: EXEC-002
+        procedureRef: VAL-002
+        status: passed
+        result: No stale controls imports or manual control helper references remain in src, tests, samples, README.md, or SKILL.md; git diff --check passed.
+        evidenceTier: inspection
+      - id: EXEC-003
+        procedureRef: VAL-003
+        status: passed
+        command: yarn start validate samples/direct-completion/node.yml && yarn start validate samples/nested-graph/graph.yml && yarn start validate samples/bounded-loop/loop.yml && yarn start validate samples/two-llm-conversation/alpha.yml && yarn start validate samples/two-llm-conversation/beta.yml && yarn start validate samples/two-llm-conversation/conversation-loop.yml
+        result: All retained sample definitions passed provider-free validation, including the migrated conversation loop.
+        evidenceTier: cli-audit
+    limitations:
+      - No live provider, checkpoint persistence, interrupt/resume, durable side-effect recovery, or production behavior was exercised.

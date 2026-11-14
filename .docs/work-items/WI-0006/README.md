@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 ---
 
 # WI-0006 — One authoritative LangGraph execution path

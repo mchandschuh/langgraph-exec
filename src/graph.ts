@@ -41,7 +41,7 @@ export interface ComponentNodeAdapterOptions {
   readonly debug?: DebugSink;
 }
 export interface GraphCompileOptions { readonly rootDir?: string; readonly components?: Readonly<Record<string, GraphComponent>>; readonly completionService?: CompletionService; readonly debug?: DebugSink; readonly schemaRegistry?: SchemaRegistry }
-export interface CompiledRuntime { readonly inspect: Record<string, unknown>; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<Record<string, unknown>>; stream?(input: Readonly<Record<string, unknown>>, mode?: 'values' | 'updates' | 'debug' | 'tasks'): Promise<AsyncIterable<unknown>> }
+export interface CompiledRuntime { readonly inspect: Record<string, unknown>; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<unknown>; stream?(input: Readonly<Record<string, unknown>>, mode?: 'values' | 'updates' | 'debug' | 'tasks'): Promise<AsyncIterable<unknown>> }
 export interface CompiledGraph extends CompiledRuntime { readonly definition: GraphDefinition }
 
 export class GraphDefinitionError extends Error {
@@ -107,7 +107,7 @@ export function adaptComponentToLangGraphNode(options: ComponentNodeAdapterOptio
   };
 }
 export function adaptNodeDefinition(definition: NodeDefinition, service?: CompletionService): GraphComponent { return { name: definition.name, inputs: definition.ports.inputs, outputs: definition.ports.outputs, async execute(input, _state, debug) { const response = await executeNode(definition, { input }, service, debug); if (response.status !== 'success') throw new GraphDefinitionError(response.errors[0]?.message ?? 'Nested node execution failed.'); return { response: response.output?.value ?? response.output }; } }; }
-export function adaptCompiledGraph(compiled: CompiledGraph): GraphComponent { return { name: compiled.definition.name, inputs: compiled.definition.ports.inputs, outputs: compiled.definition.ports.outputs, execute: (input, _state, debug) => compiled.invoke(input, debug) }; }
+export function adaptCompiledGraph(compiled: CompiledGraph): GraphComponent { return { name: compiled.definition.name, inputs: compiled.definition.ports.inputs, outputs: compiled.definition.ports.outputs, execute: async (input, _state, debug) => { const output = await compiled.invoke(input, debug); if (!isRecord(output)) throw new GraphDefinitionError(`Compiled component '${compiled.definition.name}' returned a non-object output.`); return output; } }; }
 
 function validateGraph(graph: GraphDefinition, components: Readonly<Record<string, GraphComponent>>): void {
   const nodeIds = new Set(graph.nodes.map((node) => node.id)); for (const node of graph.nodes) if (!components[node.component]) throw new GraphDefinitionError(`Component '${node.component}' is not resolved.`);

@@ -6,7 +6,7 @@ import type { DebugSink } from 'llm';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { executeNode, parseNodeDefinition } from './node.js';
 import { adaptCompiledGraph, adaptNodeDefinition, compileGraphFile, GraphDefinitionError } from './graph.js';
-import type { ComponentPort, GraphComponent, GraphPort, GraphStateField } from './graph.js';
+import type { CompiledRuntime, ComponentPort, GraphComponent, GraphPort, GraphStateField } from './graph.js';
 import { parseStructuredDocument } from './document.js';
 import { defaultSchemaRegistry, type SchemaExpression, type SchemaRegistry } from './schema-registry.js';
 
@@ -39,7 +39,7 @@ export interface LoopDefinition {
   readonly loop: LoopContract;
 }
 export interface LoopResult { readonly status: LoopStatus; readonly output: Readonly<Record<string, unknown>>; readonly iterations: number; readonly steps: number; readonly error?: string }
-export interface CompiledLoop { readonly definition: LoopDefinition; readonly inspect: Record<string, unknown>; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<LoopResult> }
+export interface CompiledLoop extends CompiledRuntime { readonly definition: LoopDefinition; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<LoopResult> }
 export interface LoopCompileOptions { readonly rootDir?: string; readonly components?: Readonly<Record<string, GraphComponent>>; readonly completionService?: CompletionService; readonly debug?: DebugSink; readonly schemaRegistry?: SchemaRegistry }
 
 export class LoopDefinitionError extends Error {
@@ -161,6 +161,12 @@ export async function compileLoopFile(filePath: string, options: LoopCompileOpti
       for (const event of (state.__events as Array<{ event: string; data: Record<string, unknown> }> | undefined) ?? []) debug?.({ event: event.event, timestamp: new Date().toISOString(), data: event.data });
       debug?.({ event: status === 'success' ? 'loop.exit' : status === 'body_error' ? 'loop.body_error' : 'loop.exhaustion', timestamp: new Date().toISOString(), data: result });
       return result;
+    },
+    async stream(input, mode = 'updates') {
+      const initial: Record<string, unknown> = {};
+      for (const [name, field] of Object.entries(definition.state)) initial[name] = field.default;
+      for (const [name, port] of Object.entries(definition.ports.inputs)) if (own(input as Record<string, unknown>, name)) initial[port.state] = input[name];
+      return compiled.stream(initial, { streamMode: mode });
     },
   };
 }

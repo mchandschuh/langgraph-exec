@@ -62,9 +62,9 @@ yarn start run samples/bounded-loop/loop.yml --input samples/bounded-loop/input.
 `two-llm-conversation/` demonstrates two declarative `llm.complete` nodes
 composed by a sample-local runner. It executes ten rounds of `alpha -> beta`,
 then `beta -> alpha`, passing the complete aggregate conversation into every
-request. Each turn uses `control.retry` inside `control.try` so transient
-provider or schema failures are retried up to three times and permanently
-failed turns become bounded transcript records.
+request. Each turn uses native LangGraph `retryPolicy` inside the compiled
+bounded loop so transient provider or schema failures are retried up to three
+times and permanently failed turns become bounded transcript records.
 
 The opening message is supplied as a command-line argument:
 

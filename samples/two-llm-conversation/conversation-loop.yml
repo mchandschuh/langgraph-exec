@@ -1,0 +1,65 @@
+schema: https://schemas.handschuh.dev/langgraph-exec/control-loop/v1
+kind: control.loop
+name: sample-two-llm-conversation
+imports: []
+state:
+  fields:
+    openingMessage:
+      type: string
+      reducer: replace
+    round:
+      type: integer
+      default: 1
+      reducer: replace
+    speaker:
+      type: string
+      default: alpha
+      reducer: replace
+    conversation:
+      type: object
+      default: []
+      reducer: replace
+    turn:
+      type: object
+      reducer: replace
+    done:
+      type: boolean
+      default: false
+      reducer: replace
+    iterations:
+      type: integer
+      default: 0
+      reducer: replace
+ports:
+  inputs:
+    openingMessage:
+      state: openingMessage
+      type: string
+      required: true
+  outputs:
+    conversation:
+      state: conversation
+      type: object
+      required: true
+body:
+  component: sample.conversation-turn
+  inputs:
+    openingMessage: state.openingMessage
+    round: state.round
+    speaker: state.speaker
+    conversation: state.conversation
+  outputs:
+    turn: state.turn
+    conversation: state.conversation
+    round: state.round
+    speaker: state.speaker
+    done: state.done
+loop:
+  entry: body
+  body: body
+  exit: done
+  condition: done
+  counter: iterations
+  maxIterations: 20
+  maxSteps: 20
+  onExhaustion: error

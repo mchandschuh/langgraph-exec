@@ -58,7 +58,7 @@ test('two-LLM sample alternates alpha then beta for ten rounds with the full tra
   assert.equal((requests[2]!.task as ConversationTask).conversation.length, 2);
 });
 
-test('control.retry retries output failures and control.try records exhausted failures', async () => {
+test('native retryPolicy retries output failures and records exhausted failures', async () => {
   const calls = new Map<string, number>();
   const requests: LlmRequest[] = [];
   const result = await runConversation('Discuss retries.', {

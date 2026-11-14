@@ -1,9 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { complete, stderrDebugSink } from 'llm';
 import type { DebugSink, LlmRequest, LlmResponse } from 'llm';
-import { retryControl, tryControl } from '../../src/controls.js';
+import { compileLoopFile } from '../../src/loop.js';
+import type { ComponentPort, GraphComponent } from '../../src/graph.js';
 import { executeNode, parseNodeDefinition } from '../../src/node.js';
 import type { CompletionService, NodeDefinition } from '../../src/node.js';
 
@@ -166,53 +168,80 @@ function defaultCompletionService(): CompletionService {
   })) as LlmResponse;
 }
 
-async function executeTurn(
-  node: NodeDefinition,
-  openingMessage: string,
-  round: number,
-  speaker: Participant,
-  conversation: readonly ConversationTurn[],
+function port(type: string, required = false): ComponentPort { return { type, ...(required ? { required: true } : {}) }; }
+
+function conversationTurnComponent(
+  nodes: Readonly<Record<Participant, NodeDefinition>>,
+  schemas: Readonly<Record<'taskSchema' | 'outputSchema', Readonly<Record<string, unknown>>>>,
   service: CompletionService,
   debug?: DebugSink,
-): Promise<ConversationTurn> {
-  const task = taskFor(openingMessage, round, speaker, conversation);
-  const schemas = await loadSchemas();
-  let lastError: unknown;
-  let attempts = 0;
-  const attempted = await tryControl(task, async (input) => {
-    const result = await retryControl(input, async (retryInput, attempt) => {
-      attempts = attempt;
-      try {
-        const response = await executeNode(node, { parameters: schemas, input: { task: retryInput } }, service, debug);
-        return responseOutput(response, speaker, round);
-      } catch (error) {
-        lastError = error;
-        throw error;
-      }
-    }, MAX_ATTEMPTS_PER_TURN, retryable, debug);
-    if (result.status !== 'success') {
-      if (lastError) throw lastError;
-      throw new ConversationTurnError('LLM_TURN_FAILED', result.status === 'failure' ? 'provider_error' : 'attempts_exhausted', result.error ?? 'The LLM turn exhausted its retry budget.');
-    }
-    return result.output as string;
-  }, debug);
-
-  if (attempted.status === 'success') return { round, speaker, status: 'success', message: attempted.output as string };
-  return failureTurn(round, speaker, lastError ?? new ConversationTurnError('LLM_TURN_FAILED', 'attempts_exhausted', attempted.error ?? 'The LLM turn failed.'), attempts);
+): GraphComponent {
+  return {
+    name: 'sample.conversation-turn',
+    inputs: {
+      openingMessage: port('string', true),
+      round: port('integer', true),
+      speaker: port('string', true),
+      conversation: port('object', true),
+    },
+    outputs: {
+      turn: port('object', true),
+      conversation: port('object', true),
+      round: port('integer', true),
+      speaker: port('string', true),
+      done: port('boolean', true),
+    },
+    async execute(input): Promise<Record<string, unknown>> {
+      const openingMessage = String(input.openingMessage);
+      const round = Number(input.round);
+      const speaker = input.speaker as Participant;
+      const conversation = input.conversation as readonly ConversationTurn[];
+      if (!isParticipant(speaker) || !Number.isInteger(round) || round < 1 || !Array.isArray(conversation)) throw new Error('CONVERSATION_TURN_INPUT_INVALID');
+      const task = taskFor(openingMessage, round, speaker, conversation);
+      let attempts = 0;
+      let lastError: unknown;
+      const turnState = Annotation.Root({ result: Annotation<ConversationTurn>() });
+      const builder = new StateGraph(turnState) as any;
+      builder.addNode('turnNode', async () => {
+        attempts += 1;
+        try {
+          const response = await executeNode(nodes[speaker], { parameters: schemas, input: { task } }, service, debug);
+          return { result: { round, speaker, status: 'success', message: responseOutput(response, speaker, round) } satisfies ConversationTurn };
+        } catch (error) {
+          lastError = error;
+          throw error;
+        }
+      }, {
+        retryPolicy: { maxAttempts: MAX_ATTEMPTS_PER_TURN, jitter: false, retryOn: () => true },
+        errorHandler: (_state: unknown, error: unknown) => ({ result: failureTurn(round, speaker, lastError ?? error, attempts) }),
+      });
+      builder.addEdge(START, 'turnNode');
+      builder.addEdge('turnNode', END);
+      const graph = builder.compile({ checkpointer: false });
+      const result = await graph.invoke({});
+      const turn = result.result as ConversationTurn;
+      const nextIsBeta = speaker === 'alpha';
+      const nextRound = nextIsBeta ? round : round + 1;
+      return {
+        turn,
+        conversation: [...conversation, turn],
+        round: nextRound,
+        speaker: nextIsBeta ? 'beta' : 'alpha',
+        done: !nextIsBeta && round >= CONVERSATION_ROUNDS,
+      };
+    },
+  };
 }
 
 export async function runConversation(openingMessage: string, options: ConversationOptions = {}): Promise<ConversationResult> {
   if (typeof openingMessage !== 'string' || openingMessage.trim().length === 0) throw new Error('An opening conversation message is required.');
   const nodes = await loadNodes();
   const service = options.completionService ?? defaultCompletionService();
-  const conversation: ConversationTurn[] = [];
-
-  for (let round = 1; round <= CONVERSATION_ROUNDS; round += 1) {
-    for (const speaker of PARTICIPANTS) {
-      conversation.push(await executeTurn(nodes[speaker], openingMessage.trim(), round, speaker, conversation, service, options.debug));
-    }
-  }
-
+  const loop = await compileLoopFile(resolve(SAMPLE_DIR, 'conversation-loop.yml'), {
+    components: { 'sample.conversation-turn': conversationTurnComponent(nodes, await loadSchemas(), service, options.debug) },
+  });
+  const loopResult = await loop.invoke({ openingMessage: openingMessage.trim() });
+  const conversation = loopResult.output.conversation as readonly ConversationTurn[];
   const failedTurns = conversation.filter((turn) => turn.status === 'failure').length;
   return {
     conversationId: CONVERSATION_ID,

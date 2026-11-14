@@ -38,6 +38,7 @@ in this sample. `validate` and `inspect` remain provider-free:
 ```bash
 yarn start validate samples/two-llm-conversation/alpha.yml
 yarn start validate samples/two-llm-conversation/beta.yml
+yarn start validate samples/two-llm-conversation/conversation-loop.yml
 yarn start inspect samples/two-llm-conversation/alpha.yml --resolved --format json
 ```
 
@@ -75,30 +76,28 @@ schema before returning success. The runner repeats the speaker/round check so
 an injected completion service cannot silently return another participant's
 response.
 
-## Why the control nodes are used this way
+## LangGraph execution
 
-The current repository exposes `control.try` and `control.retry` as runtime
-helpers in `src/controls.ts`. The YAML loader currently loads direct nodes,
-graphs, and `control.loop`; it does not yet load `control.try` or
-`control.retry` as standalone YAML component files. The sample therefore uses
-the helpers in `run.ts` while keeping both LLM participants declarative.
+The sample uses `conversation-loop.yml` as the declarative bounded workflow. Its
+body is a trusted component that performs one participant turn; that component
+uses a nested LangGraph `StateGraph` node with native `retryPolicy` for transient
+provider/output failures. The outer conversation loop is lowered to the
+repository's bounded StateGraph cycle.
 
-Each participant invocation has this nesting:
+The execution shape is:
 
 ```text
-control.try(
-  control.retry(
-    execute the participant's llm.complete node,
-    maxAttempts = 3
-  )
-)
+control.loop
+  -> sample.conversation-turn component
+  -> LangGraph StateGraph node
+  -> native retryPolicy
+  -> turn/failure state update
+  -> next loop iteration
 ```
 
-### `control.retry`
-
-`control.retry` is used around one participant turn because provider-backed
-completion is a transient boundary. It makes the maximum number of attempts
-explicit and prevents a failed provider call from creating an unbounded loop.
+There is no standalone TypeScript control runtime. The repository compiler owns
+the YAML contract and bounded loop policy; LangGraph owns node execution, retry,
+state transitions, and runtime scheduling.
 
 The retry predicate is:
 
@@ -132,19 +131,16 @@ input_invalid
 configuration_error
 ```
 
-Each node sets `maxFailedAttempts: 0` and `maxIterations: 1` so the sample's
-outer retry policy is the visible retry boundary. The maximum is therefore:
+Each node sets `maxFailedAttempts: 0` and `maxIterations: 1` so the graph's
+native node retry policy is the visible retry boundary. The maximum is therefore:
 
 ```text
 10 rounds * 2 participants * 3 attempts = 60 participant invocations
 ```
 
-### `control.try`
-
-`control.try` wraps the retry operation so the conversation can handle a
-participant that remains unavailable after all permitted attempts. It prevents
-one failed turn from aborting the remaining nine rounds. Its failure branch
-adds a bounded record like this to the shared transcript:
+After native retries are exhausted, the LangGraph node error handler converts the
+failure into a bounded turn record instead of aborting the remaining rounds. The
+failure branch adds a record like this to the shared transcript:
 
 ```json
 {
@@ -173,7 +169,7 @@ an LLM provider. It verifies:
 - Alpha runs before Beta in every round;
 - each request includes `taskSchema` and `outputSchema`;
 - each task contains the complete conversation available at that point;
-- a transient response failure succeeds through `control.retry`;
-- a permanent response failure is handled by `control.try`;
+- a transient response failure succeeds through native `retryPolicy`;
+- a permanent response failure is handled by the native node error handler;
 - the failure record is visible to later participants;
 - exactly ten rounds and twenty turn records are produced.

@@ -32,8 +32,17 @@ export interface GraphComponent {
   readonly outputs: Readonly<Record<string, ComponentPort>>;
   execute(input: Readonly<Record<string, unknown>>, state: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<Record<string, unknown>>;
 }
+export interface ComponentNodeAdapterOptions {
+  readonly component: GraphComponent;
+  readonly resolveInput: (state: Readonly<Record<string, unknown>>) => Readonly<Record<string, unknown>>;
+  readonly applyOutput: (output: Record<string, unknown>, state: Readonly<Record<string, unknown>>, input: Readonly<Record<string, unknown>>) => Record<string, unknown>;
+  readonly beforeExecute?: (input: Readonly<Record<string, unknown>>, state: Readonly<Record<string, unknown>>) => Record<string, unknown>;
+  readonly afterExecute?: (output: Record<string, unknown>, state: Readonly<Record<string, unknown>>, input: Readonly<Record<string, unknown>>) => Record<string, unknown>;
+  readonly debug?: DebugSink;
+}
 export interface GraphCompileOptions { readonly rootDir?: string; readonly components?: Readonly<Record<string, GraphComponent>>; readonly completionService?: CompletionService; readonly debug?: DebugSink; readonly schemaRegistry?: SchemaRegistry }
-export interface CompiledGraph { readonly definition: GraphDefinition; readonly inspect: Record<string, unknown>; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<Record<string, unknown>>; stream?(input: Readonly<Record<string, unknown>>, mode?: 'values' | 'updates' | 'debug' | 'tasks'): Promise<AsyncIterable<unknown>> }
+export interface CompiledRuntime { readonly inspect: Record<string, unknown>; invoke(input: Readonly<Record<string, unknown>>, debug?: DebugSink): Promise<Record<string, unknown>>; stream?(input: Readonly<Record<string, unknown>>, mode?: 'values' | 'updates' | 'debug' | 'tasks'): Promise<AsyncIterable<unknown>> }
+export interface CompiledGraph extends CompiledRuntime { readonly definition: GraphDefinition }
 
 export class GraphDefinitionError extends Error {
   readonly code = 'GRAPH_DEFINITION_INVALID' as const;
@@ -90,8 +99,15 @@ function internalOutputKey(node: string, port: string): string { return `__node_
 function stateField(graph: GraphDefinition, reference: string): string { const match = /^(?:state|input)\.([A-Za-z][A-Za-z0-9._-]*)$/.exec(reference); if (!match) throw new GraphDefinitionError(`Reference '${reference}' must use state.<field> or input.<port>.`); if (reference.startsWith('input.')) { const port = graph.ports.inputs[match[1]]; if (!port) throw new GraphDefinitionError(`Unknown graph input port '${match[1]}'.`); return port.state; } if (!own(graph.state, match[1])) throw new GraphDefinitionError(`Unknown state field '${match[1]}'.`); return match[1]; }
 
 function emitDebug(sink: DebugSink | undefined, event: string, data: Record<string, unknown>): void { if (sink) sink({ event, timestamp: new Date().toISOString(), data }); }
-function nodeComponent(definition: NodeDefinition, service?: CompletionService): GraphComponent { return { name: definition.name, inputs: definition.ports.inputs, outputs: definition.ports.outputs, async execute(input, _state, debug) { const response = await executeNode(definition, { input }, service, debug); if (response.status !== 'success') throw new GraphDefinitionError(response.errors[0]?.message ?? 'Nested node execution failed.'); return { response: response.output?.value ?? response.output }; } }; }
-function graphComponent(compiled: CompiledGraph): GraphComponent { return { name: compiled.definition.name, inputs: compiled.definition.ports.inputs, outputs: compiled.definition.ports.outputs, execute: (input, _state, debug) => compiled.invoke(input, debug) }; }
+export function adaptComponentToLangGraphNode(options: ComponentNodeAdapterOptions): (state: Readonly<Record<string, unknown>>) => Promise<Record<string, unknown>> {
+  return async (state) => {
+    const input = options.resolveInput(state);
+    const output = await options.component.execute(input, state, options.debug);
+    return { ...(options.beforeExecute?.(input, state) ?? {}), ...options.applyOutput(output, state, input), ...(options.afterExecute?.(output, state, input) ?? {}) };
+  };
+}
+export function adaptNodeDefinition(definition: NodeDefinition, service?: CompletionService): GraphComponent { return { name: definition.name, inputs: definition.ports.inputs, outputs: definition.ports.outputs, async execute(input, _state, debug) { const response = await executeNode(definition, { input }, service, debug); if (response.status !== 'success') throw new GraphDefinitionError(response.errors[0]?.message ?? 'Nested node execution failed.'); return { response: response.output?.value ?? response.output }; } }; }
+export function adaptCompiledGraph(compiled: CompiledGraph): GraphComponent { return { name: compiled.definition.name, inputs: compiled.definition.ports.inputs, outputs: compiled.definition.ports.outputs, execute: (input, _state, debug) => compiled.invoke(input, debug) }; }
 
 function validateGraph(graph: GraphDefinition, components: Readonly<Record<string, GraphComponent>>): void {
   const nodeIds = new Set(graph.nodes.map((node) => node.id)); for (const node of graph.nodes) if (!components[node.component]) throw new GraphDefinitionError(`Component '${node.component}' is not resolved.`);
@@ -140,8 +156,10 @@ function buildCompiledGraph(graph: GraphDefinition, components: Readonly<Record<
   const builder = new StateGraph(Annotation.Root(channels as never) as never) as any;
   for (const node of graph.nodes) {
     const component = components[node.component];
-    const action = async (state: Record<string, unknown>) => {
-      const input: Record<string, unknown> = {};
+    const action = adaptComponentToLangGraphNode({
+      component,
+      resolveInput: (state) => {
+        const input: Record<string, unknown> = {};
       for (const binding of graph.bindings) {
         const target = endpointNode(binding.to);
         if (target?.node === node.id) {
@@ -149,9 +167,10 @@ function buildCompiledGraph(graph: GraphDefinition, components: Readonly<Record<
           input[target.port] = source ? state[internalOutputKey(source.node, source.port)] : pathValue(state, `state.${stateField(graph, binding.from)}`);
         }
       }
-      const events: Record<string, unknown>[] = [{ event: 'graph.node.input', data: { graph: graph.name, node: node.id, component: node.component, ports: input } }];
-      const result = await component.execute(input, state);
-      const update: Record<string, unknown> = { __events: events };
+        return input;
+      },
+      applyOutput: (result) => {
+        const update: Record<string, unknown> = {};
       for (const binding of graph.bindings) {
         const source = endpointNode(binding.from);
         if (source?.node !== node.id) continue;
@@ -160,9 +179,10 @@ function buildCompiledGraph(graph: GraphDefinition, components: Readonly<Record<
         if (binding.to.startsWith('output.')) update[graph.ports.outputs[binding.to.slice(7)].state] = graph.state[graph.ports.outputs[binding.to.slice(7)].state].reducer === 'append' ? [value] : value;
         else if (binding.to.startsWith('state.')) update[binding.to.slice(6)] = value;
       }
-      events.push({ event: 'graph.node.output', data: { graph: graph.name, node: node.id, component: node.component, ports: result } });
-      return update;
-    };
+        return update;
+      },
+      afterExecute: (result, _state, input) => ({ __events: [{ event: 'graph.node.input', data: { graph: graph.name, node: node.id, component: node.component, ports: input } }, { event: 'graph.node.output', data: { graph: graph.name, node: node.id, component: node.component, ports: result } }] }),
+    });
     const policy = { ...(node.retryPolicy ? { retryPolicy: node.retryPolicy } : {}), ...(node.timeout ? { timeout: node.timeout } : {}) };
     builder.addNode(node.id, action, policy);
   }
@@ -187,6 +207,6 @@ function buildCompiledGraph(graph: GraphDefinition, components: Readonly<Record<
 }
 
 
-async function loadComponent(filePath: string, rootDir: string, options: GraphCompileOptions, stack: readonly string[], registry: SchemaRegistry): Promise<GraphComponent> { const absolute = resolve(filePath); if (stack.includes(absolute)) throw new GraphDefinitionError(`Component import cycle detected at '${absolute}'.`); const source = await readFile(absolute, 'utf8'); const parsed = parseStructuredDocument(source, absolute) as Record<string, unknown>; if (parsed.kind === 'node') return nodeComponent(parseNodeDefinition(source, absolute, registry), options.completionService); const definition = parseGraphDefinition(source, absolute, registry); const components: Record<string, GraphComponent> = { ...(options.components ?? {}) }; for (const item of definition.imports) { const childPath = resolveImport(rootDir, dirname(absolute), item.path); const childSource = await readFile(childPath, 'utf8'); if (item.sha256 && digest(childSource) !== item.sha256) throw new GraphDefinitionError(`Digest mismatch for import '${item.path}'.`); components[item.alias] = await loadComponent(childPath, rootDir, options, [...stack, absolute], registry); } return graphComponent(buildCompiledGraph(definition, components)); }
+async function loadComponent(filePath: string, rootDir: string, options: GraphCompileOptions, stack: readonly string[], registry: SchemaRegistry): Promise<GraphComponent> { const absolute = resolve(filePath); if (stack.includes(absolute)) throw new GraphDefinitionError(`Component import cycle detected at '${absolute}'.`); const source = await readFile(absolute, 'utf8'); const parsed = parseStructuredDocument(source, absolute) as Record<string, unknown>; if (parsed.kind === 'node') return adaptNodeDefinition(parseNodeDefinition(source, absolute, registry), options.completionService); const definition = parseGraphDefinition(source, absolute, registry); const components: Record<string, GraphComponent> = { ...(options.components ?? {}) }; for (const item of definition.imports) { const childPath = resolveImport(rootDir, dirname(absolute), item.path); const childSource = await readFile(childPath, 'utf8'); if (item.sha256 && digest(childSource) !== item.sha256) throw new GraphDefinitionError(`Digest mismatch for import '${item.path}'.`); components[item.alias] = await loadComponent(childPath, rootDir, options, [...stack, absolute], registry); } return adaptCompiledGraph(buildCompiledGraph(definition, components)); }
 export async function compileGraphFile(filePath: string, options: GraphCompileOptions = {}): Promise<CompiledGraph> { const absolute = resolve(filePath); const rootDir = resolve(options.rootDir ?? dirname(absolute)); const source = await readFile(absolute, 'utf8'); const registry = options.schemaRegistry ?? await defaultSchemaRegistry(); const definition = parseGraphDefinition(source, absolute, registry); const components: Record<string, GraphComponent> = { ...(options.components ?? {}) }; for (const item of definition.imports) { const childPath = resolveImport(rootDir, dirname(absolute), item.path); const childSource = await readFile(childPath, 'utf8'); if (item.sha256 && digest(childSource) !== item.sha256) throw new GraphDefinitionError(`Digest mismatch for import '${item.path}'.`); components[item.alias] = await loadComponent(childPath, rootDir, options, [absolute], registry); } return buildCompiledGraph(definition, components); }
 export function componentRegistry(components: Readonly<Record<string, GraphComponent>>): Readonly<Record<string, GraphComponent>> { return components; }

@@ -25,5 +25,5 @@ export type {
   ParameterType,
   PortDefinition,
 } from './node.js';
-export type { CompiledGraph, ComponentPort, GraphBinding, GraphCompileOptions, GraphComponent, GraphDefinition, GraphEdge, GraphImport, GraphNodeInstance, GraphPort, GraphRoute, GraphStateField } from './graph.js';
+export type { CompiledGraph, CompiledRuntime, ComponentNodeAdapterOptions, ComponentPort, GraphBinding, GraphCompileOptions, GraphComponent, GraphDefinition, GraphEdge, GraphImport, GraphNodeInstance, GraphPort, GraphRoute, GraphStateField } from './graph.js';
 export type { CompiledLoop, ExhaustionPolicy, LoopBody, LoopCompileOptions, LoopContract, LoopDefinition, LoopImport, LoopResult, LoopStatus } from './loop.js';

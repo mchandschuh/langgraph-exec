@@ -1,0 +1,103 @@
+---
+status: planned
+---
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-20000000
+orderKey: "20000000"
+parentTaskUid: WI-0006-00000000
+taskType: implementation
+processingStatus: planned
+title: Implement the unified LangGraph component adapter and runtime (WI-0006)
+objective: Compile graph and control-loop definitions to one LangGraph runtime using a reusable trusted-component adapter.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/README.md
+    - .docs/work-items/WI-0006/steps/WI-0006-00000000-design.yaml
+    - .docs/work-items/WI-0006/steps/WI-0006-10000000-test-strategy.yaml
+    - src/graph.ts
+    - src/loop.ts
+    - src/node.ts
+    - src/index.ts
+    - schemas/graph/v1/graph.schema.json
+    - schemas/control-loop/v1/control-loop.schema.json
+    - tests/graph.test.ts
+    - tests/loop.test.ts
+  informational:
+    - node_modules/@langchain/langgraph/dist/graph/state.d.ts
+    - node_modules/@langchain/langgraph/dist/graph/graph.d.ts
+    - node_modules/@langchain/langgraph/dist/constants.d.ts
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/graph.ts
+    - src/loop.ts
+    - src/node.ts
+    - src/index.ts
+    - schemas/graph/v1/
+    - schemas/control-loop/v1/
+    - tests/graph.test.ts
+    - tests/loop.test.ts
+    - tests/fixtures/graphs/
+    - tests/fixtures/loops/
+    - .docs/work-items/WI-0006/
+  commitSubject: "WI-0006: 03: unify LangGraph runtime adapter"
+  commitBody:
+    requiredSections: [Why, What, Validation, Evidence, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0006-10000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Replace separate graph/loop component invocation paths with one adapter and one compiled LangGraph runtime while preserving DSL contracts.
+    changeTypes: [production-code, test-code, schema]
+    changeIntent: refactor
+    inputs:
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0006|00000000#result/OUT-001
+        purpose: Accepted runtime responsibility allocation.
+        required: true
+      - id: INPUT-TEST-STRATEGY
+        kind: task
+        ref: WI-0006|10000000#result/REQ-001
+        purpose: Required adapter and runtime test cases.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Adapt trusted components to LangGraph nodes with validated port input/output bindings.
+        inputRefs: [INPUT-DESIGN]
+        testCaseRefs: [WI-0006|10000000#test-case/TC-001]
+      - id: OBJ-002
+        statement: Compile graph and control-loop definitions to one LangGraph StateGraph-backed runtime boundary.
+        inputRefs: [INPUT-DESIGN]
+        testCaseRefs: [WI-0006|10000000#test-case/TC-002, WI-0006|10000000#test-case/TC-003]
+      - id: OBJ-003
+        statement: Preserve trusted imports, schemas, ports, nested composition, semantic budgets, and public invoke/stream behavior.
+        inputRefs: [INPUT-DESIGN]
+        testCaseRefs: [WI-0006|10000000#test-case/TC-005, WI-0006|10000000#test-case/TC-007]
+    nonGoals:
+      - Do not add checkpoint persistence, interrupt/resume, or durable side-effect handling.
+      - Do not add a new standalone control helper module.
+      - Do not remove JSON Schema or trusted import validation.
+    steps:
+      - Implement one adapter for resolving component ports, validating values, invoking trusted components, and returning partial state updates.
+      - Reuse the adapter for graph nodes, loop bodies, and nested graph components.
+      - Make control-loop compilation return the same compiled runtime shape as graph compilation.
+      - Lower supported routes/reducers/policies to native LangGraph APIs.
+      - Forward actual LangGraph stream/task/debug behavior through the public runtime boundary.
+      - Preserve repository-owned budget validation and public-port projection.
+  result:
+    status: planned
+    implementation:
+      summary: Pending implementation.

@@ -1,0 +1,115 @@
+---
+status: planned
+---
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-40000000
+orderKey: "40000000"
+parentTaskUid: WI-0006-00000000
+taskType: validation
+processingStatus: planned
+title: Validate the authoritative LangGraph runtime refactor (WI-0006)
+objective: Validate the unified runtime, migrated sample, controls deletion, documentation, and evidence boundaries.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/README.md
+    - .docs/work-items/WI-0006/steps/WI-0006-10000000-test-strategy.yaml
+    - .docs/work-items/WI-0006/steps/WI-0006-20000000-runtime-adapter.yaml
+    - .docs/work-items/WI-0006/steps/WI-0006-30000000-controls-removal.yaml
+    - package.json
+    - README.md
+    - SKILL.md
+  informational: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0006/
+    - src/
+    - schemas/
+    - tests/
+    - samples/
+    - package.json
+    - README.md
+    - SKILL.md
+    - scripts/
+    - bin/
+  commitSubject: "WI-0006: 05: validate authoritative LangGraph runtime"
+  commitBody:
+    requiredSections: [Why, What, Validation, Evidence, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0006-30000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Run the complete provider-free validation gate for the one-runtime LangGraph refactor.
+    inputs:
+      - id: INPUT-ADAPTER
+        kind: implementation
+        ref: WI-0006|20000000#result/OBJ-001
+        purpose: Unified runtime implementation.
+        required: true
+      - id: INPUT-CLEANUP
+        kind: implementation
+        ref: WI-0006|30000000#result/OBJ-002
+        purpose: Controls removal and consumer migration.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: task
+        ref: WI-0006|10000000#result/TC-001
+        purpose: Required validation test cases.
+        required: true
+    targets:
+      - id: TARGET-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Source, schemas, tests, samples, CLI, and documentation.
+        required: true
+    procedures:
+      - id: VAL-001
+        sequence: 1
+        name: provider-free-release-gate
+        description: Run typecheck, complete tests, build, and provider-free CLI checks.
+        targetRefs: [TARGET-REPOSITORY]
+        method:
+          executionMode: executable
+          command: yarn typecheck && yarn test && yarn build
+        expectedOutcome: All checks pass without credentials or live provider access.
+        required: true
+      - id: VAL-002
+        sequence: 2
+        name: duplicate-runtime-audit
+        description: Search source, tests, samples, exports, and documentation for the deleted controls module and manual graph execution patterns.
+        targetRefs: [TARGET-REPOSITORY]
+        method:
+          executionMode: executable
+          commands:
+            - grep -RInE "controls|retryControl|timeoutControl|tryControl|executeParallel|mapControl|Promise\\.all|Promise\\.race" src tests samples README.md SKILL.md
+            - git diff --check
+        expectedOutcome: No stale controls dependency or unauthorized duplicate graph runtime remains; any justified provider/compiler exception is documented.
+        required: true
+      - id: VAL-003
+        sequence: 3
+        name: cli-and-sample-gate
+        description: Validate and inspect representative node, graph, loop, and migrated sample definitions without provider access.
+        targetRefs: [TARGET-REPOSITORY]
+        method:
+          executionMode: executable
+          command: yarn build && yarn start validate samples/direct-completion/node.yml && yarn start validate samples/nested-graph/graph.yml && yarn start validate samples/bounded-loop/loop.yml
+        expectedOutcome: All retained definition forms pass provider-free validation.
+        required: true
+    nonGoals:
+      - Do not use live providers or credentials.
+      - Do not claim checkpoint persistence, interrupt/resume, durable side-effect recovery, or production readiness.
+  result:
+    status: planned
+    summary: Pending validation.

@@ -1,0 +1,96 @@
+---
+status: planned
+---
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-30000000
+orderKey: "30000000"
+parentTaskUid: WI-0006-00000000
+taskType: implementation
+processingStatus: planned
+title: Migrate consumers and remove the standalone controls runtime (WI-0006)
+objective: Migrate the conversation sample and control tests to compiled LangGraph behavior, then delete src/controls.ts and stale documentation.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/README.md
+    - .docs/work-items/WI-0006/steps/WI-0006-10000000-test-strategy.yaml
+    - .docs/work-items/WI-0006/steps/WI-0006-20000000-runtime-adapter.yaml
+    - src/controls.ts
+    - tests/control.test.ts
+    - samples/two-llm-conversation/run.ts
+    - samples/two-llm-conversation/README.md
+    - samples/two-llm-conversation/alpha.yml
+    - samples/two-llm-conversation/beta.yml
+    - README.md
+    - SKILL.md
+  informational: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/controls.ts
+    - tests/control.test.ts
+    - tests/conversation-sample.test.ts
+    - samples/two-llm-conversation/
+    - README.md
+    - SKILL.md
+    - .docs/work-items/WI-0006/
+  commitSubject: "WI-0006: 04: remove standalone controls runtime"
+  commitBody:
+    requiredSections: [Why, What, Validation, Evidence, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0006-20000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Remove controls.ts after migrating every consumer to declarative compiled LangGraph behavior and document the new execution philosophy.
+    changeTypes: [production-code, test-code, documentation]
+    changeIntent: refactor
+    inputs:
+      - id: INPUT-RUNTIME
+        kind: implementation
+        ref: WI-0006|20000000#result/OBJ-001
+        purpose: Unified adapter/runtime required by consumers.
+        required: true
+      - id: INPUT-TEST-STRATEGY
+        kind: task
+        ref: WI-0006|10000000#result/REQ-003
+        purpose: Sample migration and deletion evidence.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Migrate the two-LLM conversation sample to declarative graph execution and native LangGraph operational policies.
+        inputRefs: [INPUT-RUNTIME]
+        testCaseRefs: [WI-0006|10000000#test-case/TC-004]
+      - id: OBJ-002
+        statement: Replace standalone control tests with compiled graph tests and delete controls.ts.
+        inputRefs: [INPUT-RUNTIME]
+        testCaseRefs: [WI-0006|10000000#test-case/TC-006]
+      - id: OBJ-003
+        statement: Document that the repository is a declarative LangGraph compiler and CLI, not a parallel workflow runtime.
+        inputRefs: [INPUT-RUNTIME]
+        testCaseRefs: [WI-0006|10000000#test-case/TC-007]
+    nonGoals:
+      - Do not preserve controls.ts through a compatibility alias unless a package API audit proves an external consumer requires it.
+      - Do not add new manual retry, timeout, parallel, map, or traversal helpers.
+      - Do not introduce credentials or live provider requirements.
+    steps:
+      - Define or migrate the sample's bounded failure/retry graph representation.
+      - Update sample code/tests and remove imports of controls.ts.
+      - Replace tests/control.test.ts with graph-level coverage or remove it when its behavior is covered by existing graph tests.
+      - Delete src/controls.ts.
+      - Remove stale controls documentation and update README.md/SKILL.md.
+      - Audit package exports and generated build outputs.
+  result:
+    status: planned
+    implementation:
+      summary: Pending implementation.

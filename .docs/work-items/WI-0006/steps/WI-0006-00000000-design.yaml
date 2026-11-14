@@ -1,0 +1,154 @@
+---
+status: planned
+---
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: planned
+title: Define the authoritative LangGraph execution architecture (WI-0006)
+objective: Define the migration from standalone control helpers to one compiled LangGraph runtime while preserving the YAML compiler and trust boundaries.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/README.md
+    - .docs/work-items/WI-0005/README.md
+    - .docs/work-items/WI-0005/steps/WI-0005-50000000-review.yaml
+    - README.md
+    - SKILL.md
+    - package.json
+    - src/controls.ts
+    - src/graph.ts
+    - src/loop.ts
+    - src/node.ts
+    - src/index.ts
+    - samples/two-llm-conversation/run.ts
+  informational:
+    - node_modules/@langchain/langgraph/dist/graph/state.d.ts
+    - node_modules/@langchain/langgraph/dist/graph/graph.d.ts
+    - node_modules/@langchain/langgraph/dist/constants.d.ts
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0006/
+  commitSubject: "WI-0006: 01: design authoritative LangGraph execution"
+  commitBody:
+    requiredSections: [Why, What, Validation, Evidence, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn: []
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define one LangGraph-owned execution path and the migration boundary for controls.ts, loop execution, component adaptation, sample behavior, and runtime observability.
+    objectives:
+      - Allocate compiler, trusted component, LangGraph runtime, provider, and CLI responsibilities.
+      - Define the generic component-to-LangGraph adapter contract.
+      - Define how loop budgets, failure routes, retry, timeout, streaming, and public ports map to LangGraph.
+      - Define the controls.ts removal and conversation-sample migration plan.
+    inScope:
+      - StateGraph lowering and one compiled runtime boundary.
+      - Generic component input/output adaptation.
+      - Native retryPolicy, timeout, routes, reducers, cycles, streams, and supported Send lowering.
+      - README and sample architecture documentation.
+    outOfScope:
+      - Checkpoint persistence, interrupt/resume, human approval, durable side-effect recovery, live providers, and deployment.
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets: [structure, contract, behavior]
+    references:
+      - id: REF-001
+        type: document
+        locator: README.md
+        description: Current repository architecture and public constraints.
+      - id: REF-002
+        type: repositoryPath
+        locator: src/controls.ts
+        description: Standalone duplicate control runtime to retire.
+      - id: REF-003
+        type: repositoryPath
+        locator: src/graph.ts
+        description: Current StateGraph lowering and component execution path.
+      - id: REF-004
+        type: repositoryPath
+        locator: src/loop.ts
+        description: Current separate bounded-loop runtime.
+      - id: REF-005
+        type: repositoryPath
+        locator: samples/two-llm-conversation/run.ts
+        description: Sample consumer of manual try/retry helpers.
+      - id: REF-006
+        type: document
+        locator: .docs/work-items/WI-0005/steps/WI-0005-50000000-review.yaml
+        description: Prior review finding that explicitly deferred controls removal.
+    requirements:
+      - id: REQ-001
+        statement: LangGraph is the sole graph execution authority; compiler code owns parsing, validation, trust, and lowering only.
+        inputRefs: [REF-001, REF-003, REF-004]
+        required: true
+      - id: REQ-002
+        statement: One adapter owns trusted component input/output binding and invocation for graphs, loops, and nested components.
+        inputRefs: [REF-002, REF-003, REF-004]
+        required: true
+      - id: REQ-003
+        statement: controls.ts is deleted after consumers migrate; no manual replacement runtime is permitted.
+        inputRefs: [REF-002, REF-005, REF-006]
+        required: true
+    invariants:
+      - id: INV-001
+        statement: YAML/JSON schemas, trusted imports, public ports, provider boundaries, and semantic budgets remain compiler-owned contracts.
+        inputRefs: [REF-001, REF-003]
+        required: true
+      - id: INV-002
+        statement: Every executable graph path compiles to and runs through a LangGraph StateGraph.
+        inputRefs: [REF-003, REF-004]
+        required: true
+      - id: INV-003
+        statement: No standalone helper can become an alternate graph scheduler.
+        inputRefs: [REF-002]
+        required: true
+    outputs:
+      - id: OUT-001
+        category: responsibility-allocation
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-003, REF-004]
+        description: Accepted architecture and migration boundary.
+      - id: OUT-002
+        category: implementation-handoff
+        status: planned
+        sourceRefs: [REF-003, REF-005]
+        description: Adapter, runtime, sample, and cleanup design sufficient for implementation without inventing a second execution model.
+    verificationObligations:
+      - id: VER-001
+        kind: design-review
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-003, REF-004]
+        method:
+          type: design-review
+          steps:
+            - Identify every remaining manual execution path.
+            - Map each supported behavior to a LangGraph primitive or document a compiler-only exception.
+            - Confirm controls.ts deletion does not remove a public package API.
+        requiredFor: [implementable]
+        description: The design prevents a renamed duplicate runtime.
+    unresolvedQuestions:
+      - id: Q-001
+        question: What exact declarative graph form is needed for the conversation sample's bounded failure branch?
+        reason: The sample currently expresses try/retry behavior in TypeScript.
+        status: planned
+        impact: 80
+        confidence: 80
+        referenceRefs: [REF-005]
+        suggestedTaskType: implementation

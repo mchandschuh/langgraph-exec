@@ -1,0 +1,195 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0006",
+  "status": "planned",
+  "title": "Establish one authoritative LangGraph execution path",
+  "type": "refactor",
+  "objective": "Retire the standalone controls.ts execution helpers and make compiled LangGraph the sole runtime authority for declarative graph behavior.",
+  "repository": {
+    "root": "/home/michael/src/github/langgraph-exec",
+    "authority": "github"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "main"
+    },
+    "branch": {
+      "name": "wi-0006-authoritative-langgraph-runtime",
+      "created": false,
+      "rationale": "The work removes an internal duplicate execution path and migrates samples/tests to the compiled LangGraph runtime."
+    }
+  },
+  "baseline": "39e5ec3",
+  "request": {
+    "source": "conversation",
+    "text": "Retire the standalone controls.ts runtime, rebuild the remaining path around LangGraph primitives, migrate the sample, and document that LangGraph owns execution.",
+    "sha256": "7a0e3e4f94b5db72791f33f1d4c0d192158160d4a5c99ebd6cf9c9ce22c5c10a"
+  },
+  "scope": [
+    {
+      "name": "component-adapter",
+      "description": "Create one generic adapter from trusted GraphComponent port inputs/outputs to LangGraph node state updates.",
+      "reason": "Graph, loop, and nested-component paths must not each implement their own component invocation semantics."
+    },
+    {
+      "name": "unified-runtime",
+      "description": "Compile graph and control-loop definitions to one LangGraph-backed runtime shape and remove the separate loop invocation branch.",
+      "reason": "The CLI and library should execute every declarative graph through one StateGraph path."
+    },
+    {
+      "name": "native-policies",
+      "description": "Use LangGraph edges, conditional edges, reducers, retryPolicy, timeout, stream events, and Send where the DSL supports the corresponding behavior.",
+      "reason": "LangGraph must own scheduling and state transition behavior rather than a parallel TypeScript runtime."
+    },
+    {
+      "name": "controls-removal",
+      "description": "Migrate the conversation sample and tests, then delete src/controls.ts without introducing replacement manual helpers.",
+      "reason": "The current helper module is the remaining obvious duplicate runtime path."
+    },
+    {
+      "name": "philosophy-documentation",
+      "description": "Make the compiler/runtime responsibility split explicit in README.md, SKILL.md, and affected sample documentation.",
+      "reason": "Future contributions need a clear architectural rule against adding another execution engine."
+    },
+    {
+      "name": "evidence",
+      "description": "Provide provider-free regression, static duplicate-runtime audit, typecheck, build, and CLI evidence.",
+      "reason": "Deleting a helper path and changing runtime ownership requires repository-wide evidence."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "dsl-replacement",
+      "description": "Do not replace YAML/JSON schemas, trusted imports, digest checks, public ports, nested-component encapsulation, or registered implementation restrictions with raw LangGraph JavaScript.",
+      "reason": "Those are compiler and trust-boundary responsibilities that LangGraph does not provide.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "durable-runtime",
+      "description": "Do not add checkpoint persistence, interrupt/resume, human approval, durable side-effect receipts, or production tracing backends.",
+      "reason": "Those capabilities require a separate durable execution contract."
+    },
+    {
+      "name": "provider-release",
+      "description": "Do not require authenticated live providers or claim production readiness.",
+      "reason": "Provider-free injected components are sufficient for this refactor's evidence."
+    },
+    {
+      "name": "new-control-runtime",
+      "description": "Do not replace controls.ts with another module that manually implements graph parallelism, mapping, retry, timeout, or traversal.",
+      "reason": "The purpose of this work is to remove the duplicate runtime, not rename it."
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0006_REQ_001",
+        "name": "repository-philosophy",
+        "description": "README.md and operational guidance must state that langgraph-exec is a YAML/JSON compiler and CLI for LangGraph, with LangGraph as the sole authority for graph execution.",
+        "reason": "The architecture must be explicit before the duplicate runtime is removed.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_001_AC_001",
+            "description": "Documentation explicitly assigns parsing, validation, trusted imports, bindings, and lowering to this repository and scheduling, state transitions, reducers, routing, retries, timeouts, fan-out, streaming, and runtime events to LangGraph."
+          }
+        ]
+      },
+      {
+        "id": "WI-0006_REQ_002",
+        "name": "generic-component-adapter",
+        "description": "Trusted components must be invoked through one reusable adapter that resolves declared inputs, validates ports, invokes the component, and returns a LangGraph-compatible state update.",
+        "reason": "Graph and nested/control paths must not duplicate component invocation semantics.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_002_AC_001",
+            "description": "Provider-free tests show the same adapter is used for ordinary graph nodes and nested/control components, with input/output port validation preserved."
+          }
+        ]
+      },
+      {
+        "id": "WI-0006_REQ_003",
+        "name": "single-compiled-runtime",
+        "description": "Graph and bounded control-loop definitions must compile to and execute through one LangGraph-backed runtime boundary.",
+        "reason": "Separate CompiledLoop and CLI loop execution paths preserve a second runtime model.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_003_AC_001",
+            "description": "The CLI does not branch into a separate loop executor, and public invocation returns through the same compiled graph runtime shape."
+          }
+        ]
+      },
+      {
+        "id": "WI-0006_REQ_004",
+        "name": "native-execution-policies",
+        "description": "Declarative routes, reducers, loops, retry policies, timeouts, streaming, and supported dynamic fan-out must lower to LangGraph primitives rather than manual runtime helpers.",
+        "reason": "LangGraph must own execution, scheduling, and state transition behavior.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_004_AC_001",
+            "description": "Tests demonstrate StateGraph edges/cycles, conditional edges, reducer channels, native retryPolicy, native timeout, stream/task/debug events, and Send where a bounded map contract is implemented."
+          }
+        ]
+      },
+      {
+        "id": "WI-0006_REQ_005",
+        "name": "controls-deletion",
+        "description": "src/controls.ts and its standalone execution tests must be removed after all consumers migrate; no replacement manual control runtime may be added.",
+        "reason": "The helper module is the remaining duplicate execution path.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_005_AC_001",
+            "description": "No source, sample, test, export, or documentation imports the deleted module, and static inspection finds no equivalent manual Promise.all, Promise.race, retry-loop, or graph-traversal runtime for graph behavior."
+          }
+        ]
+      },
+      {
+        "id": "WI-0006_REQ_006",
+        "name": "conversation-sample-migration",
+        "description": "The two-LLM conversation sample must express its bounded retry/failure behavior through declarative graph definitions and the compiled LangGraph runtime.",
+        "reason": "The sample currently demonstrates the architecture we are removing.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_006_AC_001",
+            "description": "The sample no longer imports retryControl or tryControl, preserves bounded attempts and failure records, and has provider-free regression coverage."
+          }
+        ]
+      },
+      {
+        "id": "WI-0006_REQ_007",
+        "name": "preserve-compiler-boundaries",
+        "description": "The refactor must preserve YAML/JSON schemas, trusted imports and digests, public ports, nested encapsulation, component registration, LLM provider contracts, and repository-owned semantic budgets.",
+        "reason": "LangGraph execution ownership does not replace application-specific compiler and trust responsibilities.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_007_AC_001",
+            "description": "Existing node, graph, nested graph, import-security, schema, provider-boundary, and bounded-budget tests continue to pass or receive explicit schema/version migration coverage."
+          }
+        ]
+      },
+      {
+        "id": "WI-0006_REQ_008",
+        "name": "release-evidence",
+        "description": "The work must include deterministic provider-free test, typecheck, build, CLI, static-audit, diff, review, and delivery evidence with explicit non-claims.",
+        "reason": "Removing an internal runtime path affects architecture and public tooling behavior.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0006_REQ_008_AC_001",
+            "description": "The complete suite, typecheck, build, CLI sample checks, and static duplicate-runtime audit pass without claiming live provider, persistence, interrupt/resume, or production readiness."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0006/steps/"
+}

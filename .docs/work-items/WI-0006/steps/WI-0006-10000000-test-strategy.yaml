@@ -1,0 +1,156 @@
+---
+status: planned
+---
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0006-00000000
+taskType: test-strategy
+processingStatus: planned
+title: Define tests for one authoritative LangGraph runtime (WI-0006)
+objective: Define provider-free evidence for adapter reuse, native execution, sample migration, controls removal, and documentation boundaries.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/README.md
+    - .docs/work-items/WI-0006/steps/WI-0006-00000000-design.yaml
+    - package.json
+    - src/graph.ts
+    - src/loop.ts
+    - src/node.ts
+    - src/controls.ts
+    - tests/graph.test.ts
+    - tests/loop.test.ts
+    - tests/control.test.ts
+    - samples/two-llm-conversation/run.ts
+  informational:
+    - node_modules/@langchain/langgraph/dist/graph/state.d.ts
+    - node_modules/@langchain/langgraph/dist/constants.d.ts
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0006/
+  commitSubject: "WI-0006: 02: define authoritative runtime test strategy"
+  commitBody:
+    requiredSections: [Why, What, Validation, Evidence, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0006-00000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
+  intent:
+    summary: Define provider-free tests proving all executable graph behavior uses compiled LangGraph while compiler-specific validation and sample behavior remain intact.
+    inputs:
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0006|00000000#result/OUT-001
+        purpose: Responsibility allocation and migration contract.
+        required: true
+    requirements:
+      - id: REQ-001
+        kind: requirement
+        statement: A generic component adapter preserves port binding and output updates through a compiled StateGraph.
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: Graph routes, reducers, cycles, retry, timeout, streaming, and supported Send behavior execute through LangGraph primitives.
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: The conversation sample preserves bounded retry and failure records without importing controls.ts.
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: The deleted controls.ts has no remaining references and no replacement manual executor exists.
+        inputRefs: [INPUT-DESIGN]
+        required: true
+    invariants:
+      - id: INV-001
+        statement: Tests use fake components and injected completion services only.
+        required: true
+      - id: INV-002
+        statement: Tests do not require credentials, persistence, interrupt/resume, or production tracing.
+        required: true
+      - id: INV-003
+        statement: Existing compiler/import/schema/provider-boundary regressions remain covered.
+        required: true
+    testCases:
+      - id: TC-001
+        title: Generic component adapter updates LangGraph state
+        type: component
+        requirementLevel: required
+        purpose: Prove port inputs/outputs are adapted once and executed as a LangGraph node.
+        command: yarn test
+        expectedOutcome: The adapted component receives declared inputs and returns a validated partial state update.
+        passCriteria: Adapter tests pass with fake components and no manual graph traversal.
+        evidenceTier: component
+      - id: TC-002
+        title: Bounded loop uses StateGraph cycle
+        type: component
+        requirementLevel: required
+        purpose: Preserve early exit, exhaustion, and semantic counters through native graph transitions.
+        command: yarn test
+        expectedOutcome: Loop cases pass through the unified compiled runtime.
+        passCriteria: No separate CompiledLoop execution path is required.
+        evidenceTier: component
+      - id: TC-003
+        title: Native route, reducer, retry, timeout, and stream behavior
+        type: component
+        requirementLevel: required
+        purpose: Exercise LangGraph primitives directly through the public compiled runtime.
+        command: yarn test
+        expectedOutcome: Native policy and stream assertions pass.
+        passCriteria: Tests identify actual runtime updates and no helper executor.
+        evidenceTier: component
+      - id: TC-004
+        title: Conversation sample uses declarative graph execution
+        type: component
+        requirementLevel: required
+        purpose: Preserve bounded participant ordering, retries, and failure records.
+        command: yarn test
+        expectedOutcome: Sample test passes with injected completion service.
+        passCriteria: Sample has no controls.ts import or manual retry/try calls.
+        evidenceTier: component
+      - id: TC-005
+        title: Compiler and trust-boundary regression suite
+        type: component
+        requirementLevel: required
+        purpose: Preserve schemas, imports, digests, nested ports, and provider boundaries while changing runtime ownership.
+        command: yarn test
+        expectedOutcome: Existing graph/node/schema regressions pass.
+        passCriteria: Existing coverage remains green or has explicit migration tests.
+        evidenceTier: component
+      - id: TC-006
+        title: Static duplicate-runtime audit
+        type: inspection
+        requirementLevel: required
+        purpose: Prove the deleted helper module and equivalent manual graph runtime are absent.
+        command: git diff --check
+        expectedOutcome: No stale imports or duplicate execution patterns remain.
+        passCriteria: Targeted searches show no controls.ts dependency and no graph execution Promise.all/Promise.race/manual retry path.
+        evidenceTier: inspection
+      - id: TC-007
+        title: CLI and documentation gate
+        type: cli
+        requirementLevel: required
+        purpose: Prove validate, inspect, run, samples, and README guidance agree.
+        command: yarn typecheck && yarn test && yarn build
+        expectedOutcome: CLI and documentation checks pass.
+        passCriteria: Provider-free CLI validation/inspection and documentation assertions pass.
+        evidenceTier: cli-audit
+    nonGoals:
+      - Do not use live providers or credentials.
+      - Do not claim checkpoint persistence, interrupt/resume, or durable side-effect recovery.
+      - Do not preserve standalone control helper tests merely to preserve the deleted runtime path.

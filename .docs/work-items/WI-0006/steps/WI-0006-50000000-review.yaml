@@ -1,0 +1,89 @@
+---
+status: planned
+---
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-50000000
+orderKey: "50000000"
+parentTaskUid: WI-0006-00000000
+taskType: review
+processingStatus: planned
+title: Review the one-runtime LangGraph refactor (WI-0006)
+objective: Review scope, deletion safety, LangGraph ownership, compatibility, and evidence limitations.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/README.md
+    - .docs/work-items/WI-0006/steps/WI-0006-40000000-validation.yaml
+    - README.md
+    - SKILL.md
+    - package.json
+  informational: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0006/
+    - src/
+    - schemas/
+    - tests/
+    - samples/
+    - package.json
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0006: 06: review authoritative LangGraph runtime"
+  commitBody:
+    requiredSections: [Why, What, Validation, Evidence, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+dependsOn:
+  - WI-0006-40000000
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Confirm that controls.ts was retired rather than renamed, LangGraph owns execution, compiler boundaries remain intact, and validation does not overclaim.
+    reviewKind: code
+    target:
+      taskType: validation
+      taskRef: WI-0006|40000000
+    gateId: implementation-result
+    criteria:
+      - id: CRIT-001
+        statement: The implementation has one authoritative compiled LangGraph execution path.
+        purpose: Prevent a second custom runtime from surviving the refactor.
+        required: true
+      - id: CRIT-002
+        statement: controls.ts and stale consumer/documentation references are removed without adding equivalent manual helpers.
+        purpose: Confirm the cleanup achieves its architectural purpose.
+        required: true
+      - id: CRIT-003
+        statement: YAML/JSON compiler, trust, schema, port, provider, and bounded-budget contracts remain intact.
+        purpose: Prevent over-delegation to LangGraph.
+        required: true
+      - id: CRIT-004
+        statement: Evidence is provider-free and explicitly excludes persistence, interrupt/resume, durable side-effect recovery, and production readiness.
+        purpose: Keep review claims within the available evidence tier.
+        required: true
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0006|40000000
+        purpose: Complete validation result.
+      - id: EVID-002
+        kind: repository-state
+        ref: "#repository-state/HEAD"
+        purpose: Committed source and clean worktree state.
+      - id: EVID-003
+        kind: inspection
+        ref: README.md
+        purpose: Philosophy and boundary documentation.
+  result:
+    status: planned
+    decision: pending
+    summary: Pending review.

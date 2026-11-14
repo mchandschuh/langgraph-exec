@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { compileLoopFile, LoopDefinitionError, parseLoopDefinition } from '../src/loop.js';
+import { compileLoopFile, LoopDefinitionError, parseLoopDefinition, validateLoopFile } from '../src/loop.js';
 import type { GraphComponent } from '../src/graph.js';
 
 const fixture = (name: string) => join(process.cwd(), 'tests', 'fixtures', 'loops', name);
@@ -58,6 +58,12 @@ test('bounded-loop sample is a real inspectable loop artifact', async () => {
   assert.equal(loop.definition.name, 'sample-bounded-loop');
   assert.equal(loop.definition.loop.maxSteps, 6);
   assert.equal(loop.inspect.resolution && (loop.inspect.resolution as Record<string, unknown>).bounded, true);
+});
+
+test('loop validation can inspect an unresolved trusted body without executing it', async () => {
+  const definition = await validateLoopFile(join(process.cwd(), 'samples/two-llm-conversation/conversation-loop.yml'));
+  assert.equal(definition.kind, 'control.loop');
+  assert.equal(definition.body.component, 'sample.conversation-turn');
 });
 
 test('loop execution emits lifecycle and iteration debug events', async () => {

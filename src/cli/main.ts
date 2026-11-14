@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NodeDefinitionError, executeNode, inspectNode, parseNodeDefinition } from '../node.js';
 import { GraphDefinitionError, compileGraphFile } from '../graph.js';
-import { LoopDefinitionError, compileLoopFile } from '../loop.js';
+import { LoopDefinitionError, compileLoopFile, validateLoopFile } from '../loop.js';
 import { stderrDebugSink } from 'llm';
 import { readStructuredDocument } from '../document.js';
 import { SchemaRegistry } from '../schema-registry.js';
@@ -50,6 +50,12 @@ async function loadComponent(path: string, registry: SchemaRegistry) {
   return parsed.kind === 'graph' ? compileGraphFile(path, { schemaRegistry: registry }) : parseNodeDefinition(source, resolve(path), registry);
 }
 
+async function loadValidation(path: string, registry: SchemaRegistry) {
+  const parsed = await readStructuredDocument(resolve(path)) as Record<string, unknown>;
+  if (parsed.kind === 'control.loop') return validateLoopFile(path, { schemaRegistry: registry });
+  return loadComponent(path, registry);
+}
+
 function commandError(error: unknown): string {
   if (error instanceof NodeDefinitionError || error instanceof GraphDefinitionError || error instanceof LoopDefinitionError) return error.message;
   if (error instanceof Error) return error.message.slice(0, 500);
@@ -84,8 +90,10 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
         console.error('Usage: langgraph-exec validate <component.yml>');
         return 2;
       }
-      const component = await loadComponent(cleanArgs[1], registry);
-      console.log(`Valid ${'definition' in component ? component.definition.kind : 'node'}: ${'definition' in component ? component.definition.name : component.name}`);
+      const component = await loadValidation(cleanArgs[1], registry);
+      if ('definition' in component) console.log(`Valid ${component.definition.kind}: ${component.definition.name}`);
+      else if (component.kind === 'control.loop') console.log(`Valid ${component.kind}: ${component.name}`);
+      else console.log(`Valid node: ${component.name}`);
       return 0;
     }
     if (command === 'inspect') {

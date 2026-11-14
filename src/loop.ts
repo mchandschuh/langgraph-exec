@@ -170,3 +170,10 @@ export async function compileLoopFile(filePath: string, options: LoopCompileOpti
     },
   };
 }
+
+export async function validateLoopFile(filePath: string, options: Pick<LoopCompileOptions, 'rootDir' | 'schemaRegistry'> = {}): Promise<LoopDefinition> {
+  const absolute = resolve(filePath);
+  const source = await readFile(absolute, 'utf8');
+  const registry = options.schemaRegistry ?? await defaultSchemaRegistry();
+  return parseLoopDefinition(source, absolute, registry);
+}
